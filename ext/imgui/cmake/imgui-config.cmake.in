@@ -1,0 +1,7 @@
+@PACKAGE_INIT@
+
+include(CMakeFindDependencyMacro)
+
+find_dependency(pugl REQUIRED)
+
+include("${CMAKE_CURRENT_LIST_DIR}/imgui-targets.cmake")

@@ -30,3 +30,9 @@
 *.exe
 *.out
 *.app
+build/*
+build-release/*
+/examples/hello_pugltk/build/*
+/ext/glad/build/*
+/ext/pugl/build/*
+/ext/imgui/build/*
