@@ -22,6 +22,7 @@ class Ui {
   void DeInit();
   std::shared_ptr<View> GetView(ViewId const& view_id);
   bool SetMainView(ViewId const& view_id);
+  std::shared_ptr<View> GetMainView() const { return main_view_; }
  private:
   std::unique_ptr<::pugl::World> pugl_world_;
   std::shared_ptr<View> main_view_;
