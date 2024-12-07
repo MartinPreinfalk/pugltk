@@ -116,7 +116,7 @@ void View::SetupImGuiStyle() {
   return ::pugl::Status::success;
 }
 
-::pugl::Status View::onEvent(const ::pugl::UnrealizeEvent& event) noexcept {
+::pugl::Status View::onEvent(const ::pugl::UnrealizeEvent& /*event*/) noexcept {
   std::cerr << "UnrealizeEvent view " << title_ << std::endl;
   if (on_unrealize_event_function_) {
     on_unrealize_event_function_();
@@ -277,12 +277,12 @@ void View::SetupImGuiStyle() {
   return ::pugl::Status::success;
 }
 
-::pugl::Status View::onEvent(const ::pugl::ClientEvent& event) noexcept { return ::pugl::Status::success; }
-::pugl::Status View::onEvent(const ::pugl::TimerEvent& event) noexcept { return ::pugl::Status::success; }
-::pugl::Status View::onEvent(const ::pugl::LoopEnterEvent& event) noexcept { return ::pugl::Status::success; }
-::pugl::Status View::onEvent(const ::pugl::LoopLeaveEvent& event) noexcept { return ::pugl::Status::success; }
-::pugl::Status View::onEvent(const ::pugl::DataOfferEvent& event) noexcept { return ::pugl::Status::success; }
-::pugl::Status View::onEvent(const ::pugl::DataEvent& event) noexcept { return ::pugl::Status::success; }
+::pugl::Status View::onEvent(const ::pugl::ClientEvent& /*event*/) noexcept { return ::pugl::Status::success; }
+::pugl::Status View::onEvent(const ::pugl::TimerEvent& /*event*/) noexcept { return ::pugl::Status::success; }
+::pugl::Status View::onEvent(const ::pugl::LoopEnterEvent& /*event*/) noexcept { return ::pugl::Status::success; }
+::pugl::Status View::onEvent(const ::pugl::LoopLeaveEvent& /*event*/) noexcept { return ::pugl::Status::success; }
+::pugl::Status View::onEvent(const ::pugl::DataOfferEvent& /*event*/) noexcept { return ::pugl::Status::success; }
+::pugl::Status View::onEvent(const ::pugl::DataEvent& /*event*/) noexcept { return ::pugl::Status::success; }
 
 // // catch all for unused event types
 // template <typename EventType>
