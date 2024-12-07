@@ -2,8 +2,7 @@
 
 include(CMakeFindDependencyMacro)
 
-find_dependency(glad REQUIRED)
-find_dependency(pugl REQUIRED)
-find_dependency(imgui REQUIRED)
+# FIXME only find X11 when platform is set
+find_dependency(X11 REQUIRED)
 
 include("${CMAKE_CURRENT_LIST_DIR}/pugltk-targets.cmake")

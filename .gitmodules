@@ -1,6 +1,6 @@
 [submodule "ext/pugl/pugl"]
-	path = ext/pugl/pugl
+	path = pugltk/ext/pugl
 	url = https://github.com/MartinPreinfalk/pugl.git
 [submodule "ext/imgui/imgui"]
-	path = ext/imgui/imgui
+	path = pugltk/ext/imgui
 	url = https://github.com/MartinPreinfalk/imgui.git
