@@ -1,9 +1,9 @@
 #include "pugltk/Ui.h"
 
-#include <iostream>
-#include <stdexcept>
 #include <algorithm>
 #include <experimental/map>
+#include <iostream>
+#include <stdexcept>
 namespace pugltk {
 
 using std::cout;
@@ -29,9 +29,8 @@ bool Ui::Init(::pugl::WorldType const& world_type) {
   return true;
 }
 
-std::shared_ptr<View> Ui::AddView(std::string const& title, PuglSpan const& width, PuglSpan const& height,
-                                      bool resizable, ::pugl::NativeView const& parent,
-                                      View::ImGuiFrameFunction const& main_view_imgui_frame_function) {
+std::shared_ptr<View> Ui::AddView(View::Parameter const& parameter,
+                                  View::ImGuiFrameFunction const& main_view_imgui_frame_function) {
   if (pugl_world_ == nullptr) {
     std::cerr << "pugl_world_ not initialized!" << std::endl;
     return nullptr;
@@ -41,7 +40,7 @@ std::shared_ptr<View> Ui::AddView(std::string const& title, PuglSpan const& widt
     std::cerr << "could not create View instance!" << std::endl;
     return nullptr;
   }
-  auto status = view->Init(title, width, height, resizable, parent, main_view_imgui_frame_function);
+  auto status = view->Init(parameter, main_view_imgui_frame_function);
   if (status != ::pugl::Status::success) {
     std::cerr << "could not initialize View instance - " << ::pugl::strerror(status) << std::endl;
     return nullptr;
@@ -98,7 +97,7 @@ bool Ui::Render(double const& delta_t) {
   }
 
   // early exit
-  if (std::none_of(views_.begin(), views_.end(), [](auto const& view){return view.second->CloseFlag();})) {
+  if (std::none_of(views_.begin(), views_.end(), [](auto const& view) { return view.second->CloseFlag(); })) {
     return true;
   }
 
@@ -108,15 +107,15 @@ bool Ui::Render(double const& delta_t) {
       view.second->hide();
       view.second->unrealize();
     }
-  }      
-  std::experimental::erase_if(views_, [](auto const& view){return view.second->CloseFlag();});
+  }
+  std::experimental::erase_if(views_, [](auto const& view) { return view.second->CloseFlag(); });
   return true;
 }
 
 void Ui::DeInit() {
   for (auto& view : views_) {
     view.second->unrealize();
-  }      
+  }
   views_.clear();
   main_view_.reset();
   pugl_world_.reset();
@@ -138,4 +137,4 @@ bool Ui::SetMainView(ViewId const& view_id) {
   return true;
 }
 
-}  // namespace oat::ui::pugl
+}  // namespace pugltk

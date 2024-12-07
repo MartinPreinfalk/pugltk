@@ -1,9 +1,9 @@
 cmake_minimum_required(VERSION 3.16)
-project(hello_pugltk VERSION 1.0)
+project(eq_test VERSION 1.0)
 
 include(GNUInstallDirs)
 
-# determine if hello_pugltk is built as a subproject (using add_subdirectory) 
+# determine if eq_test is built as a subproject (using add_subdirectory) 
 # or if it is the main project
 set(MAIN_PROJECT OFF)
 if (CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)

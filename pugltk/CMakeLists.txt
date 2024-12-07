@@ -166,6 +166,65 @@ target_sources(${PROJECT_NAME}
       include/pugltk/View.h
 )
 
+# embedded fonts
+if(${PUGLTK_EMBED_FONTS})
+
+include(cmake/embed_ttf.cmake)
+
+add_executable(imgui_ttf_font_binary_to_compressed_c
+  ext/imgui/misc/fonts/binary_to_compressed_c.cpp
+)
+
+set(EMBEDDED_FONT_IN_PATH ${CMAKE_CURRENT_SOURCE_DIR}/ext/imgui/misc/fonts)
+set(EMBEDDED_FONT_PATH ${CMAKE_CURRENT_BINARY_DIR}/include/pugltk/fonts)
+
+file(MAKE_DIRECTORY ${EMBEDDED_FONT_PATH})
+
+embed_ttf(${EMBEDDED_FONT_IN_PATH}/Cousine-Regular.ttf cousine_regular_ttf
+  ${EMBEDDED_FONT_PATH}/cousine_regular_ttf.h
+)
+
+embed_ttf(${EMBEDDED_FONT_IN_PATH}/DroidSans.ttf droid_sans_ttf
+  ${EMBEDDED_FONT_PATH}/droid_sans_ttf.h
+)
+
+embed_ttf(${EMBEDDED_FONT_IN_PATH}/Karla-Regular.ttf karla_regular_ttf
+  ${EMBEDDED_FONT_PATH}/karla_regular_ttf.h
+)
+
+embed_ttf(${EMBEDDED_FONT_IN_PATH}/ProggyClean.ttf proggy_clean_ttf
+  ${EMBEDDED_FONT_PATH}/proggy_clean_ttf.h
+)
+
+embed_ttf(${EMBEDDED_FONT_IN_PATH}/ProggyTiny.ttf proggy_tiny_ttf
+  ${EMBEDDED_FONT_PATH}/proggy_tiny_ttf.h
+)
+
+embed_ttf(${EMBEDDED_FONT_IN_PATH}/Roboto-Medium.ttf roboto_medium_ttf
+  ${EMBEDDED_FONT_PATH}/roboto_medium_ttf.h
+)
+
+target_compile_definitions(${PROJECT_NAME} 
+  PUBLIC
+    PUGLTK_EMBED_FONTS
+)
+
+target_sources(${PROJECT_NAME}
+  PUBLIC
+    FILE_SET pugltk_fonts 
+    TYPE HEADERS
+    BASE_DIRS
+      ${CMAKE_CURRENT_BINARY_DIR}/include
+    FILES
+      ${EMBEDDED_FONT_PATH}/cousine_regular_ttf.h
+      ${EMBEDDED_FONT_PATH}/droid_sans_ttf.h
+      ${EMBEDDED_FONT_PATH}/karla_regular_ttf.h
+      ${EMBEDDED_FONT_PATH}/proggy_clean_ttf.h
+      ${EMBEDDED_FONT_PATH}/proggy_tiny_ttf.h
+      ${EMBEDDED_FONT_PATH}/roboto_medium_ttf.h
+)
+endif()
+
 target_include_directories(${PROJECT_NAME}
   PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>  
@@ -189,6 +248,7 @@ install(TARGETS ${PROJECT_NAME}
   FILE_SET pugl_platform_headers
   FILE_SET imgui_headers
   FILE_SET imgui_backends_headers
+  FILE_SET pugltk_fonts
   FILE_SET HEADERS
   LIBRARY DESTINATION lib
   ARCHIVE DESTINATION lib

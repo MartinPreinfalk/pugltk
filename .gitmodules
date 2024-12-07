@@ -4,3 +4,6 @@
 [submodule "ext/imgui/imgui"]
 	path = pugltk/ext/imgui
 	url = https://github.com/MartinPreinfalk/imgui.git
+[submodule "pugltk/ext/implot"]
+	path = pugltk/ext/implot
+	url = https://github.com/MartinPreinfalk/implot.git

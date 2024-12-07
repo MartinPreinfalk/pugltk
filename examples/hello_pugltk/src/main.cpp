@@ -1,5 +1,6 @@
 
 #include <iostream>
+
 #include "pugltk/Ui.h"
 
 using namespace std;
@@ -15,19 +16,20 @@ int main(int argc, char** argv) {
     cout << "init ui...\n";
     ui.Init(::pugl::WorldType::program);
     cout << "init view...\n";
-    auto main_view = ui.AddView("Hello ImGui Pugl UI", 800, 600, true, ::pugl::NativeView(), [&foo, &create_view]() {
-      if (ImGui::Button("foo++")){
+    auto main_view = ui.AddView(pugltk::View::Parameter("Hello ImGui Pugl UI", 800, 600), [&foo, &create_view]() {
+      ImGui::SetWindowFontScale(1.0);
+      if (ImGui::Button("foo++")) {
         foo++;
       }
-      if (ImGui::Button("create view")){
+      if (ImGui::Button("create view")) {
         create_view = true;
       }
-      if (ImGui::Button("Close")){
-        return true;
+      if (ImGui::Button("Close")) {
+        return false;
       }
-      return false;
+      return true;
     });
-    double r=0,g=0,b=0;
+    double r = 0, g = 0, b = 0;
     main_view->SetOpenGlFrameFunction([&r, &g, &b]() {
       r += 0.01;
       g += 0.011;
@@ -48,14 +50,15 @@ int main(int argc, char** argv) {
       std::cout << foo << " - " << bar << std::endl;
       if (create_view) {
         std::cout << "creating view..." << std::endl;
-        ui.AddView("Hello ImGui Pugl UI Bar", 800, 600, true, ::pugl::NativeView(), [&bar]() {
-          if (ImGui::Button("bar++")){
+        auto params = pugltk::View::Parameter("Hello ImGui Pugl UI Bar", 800, 600);
+        ui.AddView(params, [&bar]() {
+          if (ImGui::Button("bar++")) {
             bar++;
           }
-          if (ImGui::Button("Close")){
-            return true;
+          if (ImGui::Button("Close")) {
+            return false;
           }
-          return false;
+          return true;
         });
         create_view = false;
       }

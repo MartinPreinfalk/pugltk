@@ -1,12 +1,17 @@
 #pragma once
 
 #include <imgui.h>
+#include <cstdint>
+#include <string>
+#include <chrono>
 #include <atomic>
 #include <functional>
 #include <iostream>
 #include <pugl/pugl.hpp>
 #include <thread>
+
 #include "glad/glad.h"
+#include "fonts/fonts.h"
 
 using namespace std;
 using namespace std::chrono_literals;
@@ -17,6 +22,20 @@ using ViewId = size_t;
 
 class View : public ::pugl::View {
  public:
+  struct Parameter {
+    std::string title = "Untitled";
+    PuglSpan default_width = 800, default_height = 600;
+    PuglSpan min_width = 640, min_height = 480;
+    bool resizable = true;
+    ::pugl::NativeView parent = ::pugl::NativeView{};
+    fonts::FontId font_id = fonts::DefaultFontId;
+    size_t font_size = fonts::kDefaultFontSize;
+    Parameter();
+    Parameter(std::string title, ::pugl::NativeView parent = ::pugl::NativeView{});
+    Parameter(std::string title, PuglSpan width, PuglSpan height,
+                       ::pugl::NativeView parent = ::pugl::NativeView{});
+  };
+
   using ImGuiFrameFunction = std::function<bool()>;
   using OpenGlFrameFunction = std::function<bool()>;
   using OnRealizeEventFunction = std::function<void()>;
@@ -29,8 +48,7 @@ class View : public ::pugl::View {
 
   ViewId const& Id() const { return view_id_; }
 
-  ::pugl::Status Init(std::string const& title, PuglSpan const& width, PuglSpan const& height, bool resizable,
-                      ::pugl::NativeView const& parent = ::pugl::NativeView{},
+  ::pugl::Status Init(Parameter const& parameter = Parameter{},
                       ImGuiFrameFunction const& imgui_frame_function = nullptr);
 
   // setters for client code functions
@@ -40,7 +58,12 @@ class View : public ::pugl::View {
   void SetOnUnrealizeEventFunction(OnUnrealizeEventFunction const& on_unrealize_event_function);
   void SetOnConfigureEventFunction(OnConfigureEventFunction const& on_configure_event_function);
   void SetOnCloseEventFunction(OnCloseEventFunction const& on_close_event_function);
+  
+  void SetFont(fonts::FontId const& font_id, size_t const& font_size);
+  void SetFontId(fonts::FontId const& font_id);
+  void SetFontSize(size_t const& font_size);
 
+  Parameter const& GetParameter() const {return parameter_; }
   bool CloseFlag() const { return close_flag_; }
   PuglCoord XPos() const { return xpos_; }
   PuglCoord YPos() const { return ypos_; }
@@ -72,13 +95,13 @@ class View : public ::pugl::View {
   ::pugl::Status onEvent(const ::pugl::LoopLeaveEvent& event) noexcept;
   ::pugl::Status onEvent(const ::pugl::DataOfferEvent& event) noexcept;
   ::pugl::Status onEvent(const ::pugl::DataEvent& event) noexcept;
-  
+
   /// @copydoc puglRealize
   pugl::Status unrealize() noexcept { return static_cast<pugl::Status>(puglUnrealize(cobj())); }
 
  private:
   const ViewId view_id_ = 0;
-  std::string title_;
+  Parameter parameter_ = Parameter{};
   std::atomic<bool> close_flag_ = false;
   PuglCoord xpos_ = 0, ypos_ = 0;
   PuglSpan width_ = 0, height_ = 0;
@@ -92,6 +115,7 @@ class View : public ::pugl::View {
   OnCloseEventFunction on_close_event_function_;
 
   void SetupImGuiStyle();
+  void SetupFont();
 };
 
-}  // namespace oat::ui::pugl
+}  // namespace pugltk
