@@ -175,8 +175,11 @@ target_include_directories(${PROJECT_NAME}
 set_target_properties(${PROJECT_NAME} PROPERTIES
   CXX_STANDARD 17
   CXX_STANDARD_REQUIRED true
+  POSITION_INDEPENDENT_CODE true
 )
 
+# install library
+if(${install_pugltk})
 
 install(TARGETS ${PROJECT_NAME}
   EXPORT ${PROJECT_NAME}Targets
@@ -189,11 +192,8 @@ install(TARGETS ${PROJECT_NAME}
   FILE_SET HEADERS
   LIBRARY DESTINATION lib
   ARCHIVE DESTINATION lib
-#  RUNTIME DESTINATION bin
-#  INCLUDES DESTINATION include
 )
 
-#include(GNUInstallDirs)
-#install(DIRECTORY include/pugltk DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
-
 install_cmake_config(${PROJECT_NAME})
+
+endif()
