@@ -166,6 +166,30 @@ target_sources(${PROJECT_NAME}
       include/pugltk/View.h
 )
 
+# embedded fonts
+if(${PUGLTK_EMBED_FONTS})
+
+target_compile_definitions(${PROJECT_NAME} 
+  PUBLIC
+    PUGLTK_EMBED_FONTS
+)
+
+target_sources(${PROJECT_NAME}
+  PUBLIC
+    FILE_SET pugltk_fonts 
+    TYPE HEADERS
+    BASE_DIRS
+      include
+    FILES
+      include/pugltk/fonts/cousine_regular_ttf.h
+      include/pugltk/fonts/droid_sans_ttf.h
+      include/pugltk/fonts/karla_regular_ttf.h
+      include/pugltk/fonts/proggy_clean_ttf.h
+      include/pugltk/fonts/proggy_tiny_ttf.h
+      include/pugltk/fonts/roboto_medium_ttf.h
+)
+endif()
+
 target_include_directories(${PROJECT_NAME}
   PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>  
@@ -189,6 +213,7 @@ install(TARGETS ${PROJECT_NAME}
   FILE_SET pugl_platform_headers
   FILE_SET imgui_headers
   FILE_SET imgui_backends_headers
+  FILE_SET pugltk_fonts
   FILE_SET HEADERS
   LIBRARY DESTINATION lib
   ARCHIVE DESTINATION lib

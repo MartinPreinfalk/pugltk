@@ -13,6 +13,7 @@ option(install_pugltk "enables build of examples" ${MAIN_PROJECT})
 option(BUILD_SHARED_LIBS "Build using shared libraries" OFF)
 option(IMGUI_PUGL_OPENGL3_BACKEND "build with opengl3 backend" ON)
 message(STATUS "IMGUI_PUGL_OPENGL3_BACKEND: ${IMGUI_PUGL_OPENGL3_BACKEND}")
+option(PUGLTK_EMBED_FONTS "enable embedded fonts" ON)
 
 # build the lib
 add_subdirectory(pugltk)

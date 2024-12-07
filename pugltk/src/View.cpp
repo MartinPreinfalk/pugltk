@@ -10,22 +10,29 @@
 #include <imgui_impl_opengl3.h>
 // clang-format on
 
+#include "pugltk/fonts/roboto_medium_ttf.h"
+
 namespace pugltk {
+
+View::Parameter::Parameter() {}
+
+View::Parameter::Parameter(std::string title, ::pugl::NativeView parent) : title(std::move(title)), parent(parent) {}
+
+View::Parameter::Parameter(std::string title, PuglSpan width, PuglSpan height, ::pugl::NativeView parent)
+    : title(std::move(title)), default_width(width), default_height(height), parent(parent) {}
 
 View::View(::pugl::World& world, ViewId const& view_id) : ::pugl::View{world}, view_id_(std::move(view_id)) {}
 
-::pugl::Status View::Init(const std::string& title, PuglSpan const& width, PuglSpan const& height, bool resizable,
-                          ::pugl::NativeView const& parent, ImGuiFrameFunction const& imgui_frame_function) {
-  title_ = title;
-  std::cerr << "Init view " << title_ << std::endl;
-  setString(::pugl::StringHint::windowTitle, title.c_str());
-  setSizeHint(::pugl::SizeHint::defaultSize, width, height);
-  setSizeHint(::pugl::SizeHint::minSize, width, height);
+::pugl::Status View::Init(Parameter const& parameter, ImGuiFrameFunction const& imgui_frame_function) {
+  parameter_ = parameter;
+  setString(::pugl::StringHint::windowTitle, parameter_.title.c_str());
+  setSizeHint(::pugl::SizeHint::defaultSize, parameter_.default_width, parameter_.default_height);
+  setSizeHint(::pugl::SizeHint::minSize, parameter_.min_width, parameter_.min_height);
   // setSizeHint(::pugl::SizeHint::maxSize, width, height);
   // setHint(::pugl::ViewHint::resizable, PUGL_FALSE);
   // setSizeHint(::pugl::SizeHint::minAspect, 1, 1);
   // setSizeHint(::pugl::SizeHint::maxAspect, 16, 9);
-  setHint(::pugl::ViewHint::resizable, resizable ? PUGL_TRUE : PUGL_FALSE);
+  setHint(::pugl::ViewHint::resizable, parameter_.resizable ? PUGL_TRUE : PUGL_FALSE);
   setHint(::pugl::ViewHint::ignoreKeyRepeat, PUGL_TRUE);
   setEventHandler(*this);
   setBackend(puglGlBackend());
@@ -35,14 +42,13 @@ View::View(::pugl::World& world, ViewId const& view_id) : ::pugl::View{world}, v
   if (imgui_frame_function) {
     SetImGuiFrameFunction(imgui_frame_function);
   }
-  if (parent != ::pugl::NativeView{}) {
-    setParentWindow(parent);
+  if (parameter_.parent != ::pugl::NativeView{}) {
+    setParentWindow(parameter_.parent);
   }
   return realize();  // realizes view
 }
 
 void View::SetupImGuiStyle() {
-  ImGuiIO& io = ImGui::GetIO();
   auto new_scale =
       ::puglGetScaleFactor(cobj());  // FIXME: at least on x11 the scale factor is only read on world init so
                                      // rescaling during runtime seems to be currently not supported by pugl
@@ -60,26 +66,35 @@ void View::SetupImGuiStyle() {
     // Setup Style (here we only use the default)
     ::ImGui::StyleColorsDark();
 
-    // Setup Fonts
-    // io.Fonts->AddFontFromFileTTF("Cousine-Regular.ttf", 10 * scale_);
-    // io.Fonts->AddFontFromFileTTF("DroidSans.ttf", 10 * scale_);
-    // io.Fonts->AddFontFromFileTTF("Karla-Regular.ttf", 10 * scale_);
-    // io.Fonts->AddFontFromFileTTF("ProggyClean.ttf", 10 * scale_);
-    // io.Fonts->AddFontFromFileTTF("ProggyTiny.ttf", 10 * scale_);
-    // io.Fonts->AddFontFromFileTTF("Roboto-Medium.ttf", 10 * scale_);
-    // io.Fonts->GetTexDataAsRGBA32(...?)
-    // io.Fonts->GetTexDataAsAlpha8(...?);
+    // Setup Font
+    SetupFont();
 
     // Setup style scaling
     ::ImGui::GetStyle().ScaleAllSizes(scale_);
 
     // Setup font scaling
-    io.FontGlobalScale = scale_;
+    ImGui::GetIO().FontGlobalScale = scale_;
+  }
+}
+
+void View::SetFont(fonts::FontId const& font_id, size_t const& font_size) {
+  parameter_.font_id = font_id;
+  parameter_.font_size = font_size;
+  SetupFont();
+}
+
+void View::SetupFont() {
+  if (parameter_.font_id != fonts::FontId::kDefault) {
+    ImGui::GetIO().Fonts->AddFontFromMemoryCompressedTTF(fonts::GetCompressedTTFData(parameter_.font_id),
+                                                         fonts::GetCompressedTTFSize(parameter_.font_id), 10 * scale_);
+  } else {
+    ImGui::GetIO().Fonts->ClearFonts();
+    ImGui::GetIO().FontGlobalScale = scale_;
   }
 }
 
 ::pugl::Status View::onEvent(const ::pugl::RealizeEvent& /*event*/) noexcept {
-  std::cerr << "RealizeEvent view " << title_ << std::endl;
+  std::cerr << "RealizeEvent view " << parameter_.title << std::endl;
   // context active, can be used to create shader, textures, ...
 
   // init glad
@@ -117,7 +132,7 @@ void View::SetupImGuiStyle() {
 }
 
 ::pugl::Status View::onEvent(const ::pugl::UnrealizeEvent& /*event*/) noexcept {
-  std::cerr << "UnrealizeEvent view " << title_ << std::endl;
+  std::cerr << "UnrealizeEvent view " << parameter_.title << std::endl;
   if (on_unrealize_event_function_) {
     on_unrealize_event_function_();
   }
@@ -131,7 +146,7 @@ void View::SetupImGuiStyle() {
 }
 
 ::pugl::Status View::onEvent(const ::pugl::ConfigureEvent& event) noexcept {
-  std::cerr << "ConfigureEvent view " << title_ << " "
+  std::cerr << "ConfigureEvent view " << parameter_.title << " "
             << "x: " << event.x << ", "
             << "y: " << event.y << ", "
             << "width: " << event.width << ", "
@@ -203,7 +218,7 @@ void View::SetupImGuiStyle() {
 }
 
 ::pugl::Status View::onEvent(const ::pugl::CloseEvent& /*event*/) noexcept {
-  std::cerr << "CloseEvent view " << title_ << std::endl;
+  std::cerr << "CloseEvent view " << parameter_.title << std::endl;
   close_flag_ = true;
   if (on_close_event_function_) {
     on_close_event_function_();
@@ -316,4 +331,4 @@ void View::SetOnCloseEventFunction(OnCloseEventFunction const& on_close_event_fu
   on_close_event_function_ = on_close_event_function;
 }
 
-}  // namespace oat::ui::pugl
+}  // namespace pugltk
