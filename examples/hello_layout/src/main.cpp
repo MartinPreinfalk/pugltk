@@ -15,14 +15,14 @@ int main(int argc, char** argv) {
     cout << "init ui...\n";
     ui.Init(::pugl::WorldType::program);
     cout << "init view...\n";
-    auto main_view = ui.AddView(pugltk::View::Parameter("EQ Test", 800, 600), [&show_demo, &input_level]() {
+    auto main_view = ui.AddView(pugltk::View::Parameter("Hello Layout", 800, 600), [&show_demo, &input_level]() {
       bool p_open = true;
       ImGui::SetNextWindowSize(ImGui::GetMainViewport()->WorkSize, ImGuiCond_Always);
       ImGui::SetNextWindowPos(ImGui::GetMainViewport()->WorkPos, ImGuiCond_Always);
       ImGuiWindowFlags window_flags = 0;
       // window_flags |= ImGuiWindowFlags_NoTitleBar;
       window_flags |= ImGuiWindowFlags_NoScrollbar;
-      //window_flags |= ImGuiWindowFlags_MenuBar;
+      // window_flags |= ImGuiWindowFlags_MenuBar;
       window_flags |= ImGuiWindowFlags_NoMove;
       window_flags |= ImGuiWindowFlags_NoResize;
       window_flags |= ImGuiWindowFlags_NoCollapse;
@@ -32,21 +32,49 @@ int main(int argc, char** argv) {
       // window_flags |= ImGuiWindowFlags_UnsavedDocument;
 
       ImGui::Begin("foo", &p_open, window_flags);
-      ImGui::DragFloat("input", &input_level);
 
-      if(ImGui::Button("show_demo")) {
+      // Plot as lines and plot as histogram
+      static float arr[] = {0.6f, 0.1f, 1.0f, 0.5f, 0.92f, 0.1f, 0.2f};
+      ImGui::PlotLines("Frame Times", arr, IM_ARRAYSIZE(arr), 0, nullptr, FLT_MAX, FLT_MAX, ImVec2(600.0, 400.0));
+      ImGui::SameLine();
+      ImGui::BeginGroup();
+        ImGui::Button("Foo");
+        ImGui::DragFloat("input_top", &input_level, 0.001f, -10.0f, 10.0f, "%.3f",
+                          ImGuiSliderFlags_AlwaysClamp);
+      ImGui::EndGroup();
+
+      ImGui::Columns(8, "bottom", false);
+      for (size_t i = 0; i < 8; ++i) {
+        ImGui::Button(("Fooo" + std::to_string(i)).c_str());
+        ImGui::DragFloat(("input_bottom_1_" + std::to_string(i)).c_str(), &input_level, 0.001f, -10.0f, 10.0f, "%.3f",
+                         ImGuiSliderFlags_AlwaysClamp);
+        ImGui::DragFloat(("input_bottom_2_" + std::to_string(i)).c_str(), &input_level, 0.001f, -10.0f, 10.0f, "%.3f",
+                         ImGuiSliderFlags_AlwaysClamp);
+        ImGui::DragFloat(("input_bottom_3_" + std::to_string(i)).c_str(), &input_level, 0.001f, -10.0f, 10.0f, "%.3f",
+                         ImGuiSliderFlags_AlwaysClamp);
+        ImGui::DragFloat(("input_bottom_4_" + std::to_string(i)).c_str(), &input_level, 0.001f, -10.0f, 10.0f, "%.3f",
+                         ImGuiSliderFlags_AlwaysClamp);
+        ImGui::Button(("Foooo" + std::to_string(i)).c_str());
+        ImGui::NextColumn();
+      }
+
+      ImGui::Columns(1);
+      if (ImGui::Button("show_demo")) {
         show_demo = true;
       }
+
+      // ImGui::VSliderFloat("##v", ImVec2(18, 160), &input_level, 0.0f, 1.0f, "");
+
       ImGui::End();
       return p_open;
     });
     // show view
     cout << "show ui...\n";
     ui.Show();
-    
+
     cout << "render ui...\n";
     while (ui.Render(0.04)) {
-      if(show_demo) {
+      if (show_demo) {
         show_demo = false;
         auto demo = ui.AddView(pugltk::View::Parameter("Demo", 800, 600), []() {
           bool p_open = true;
