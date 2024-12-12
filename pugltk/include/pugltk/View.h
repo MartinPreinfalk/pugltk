@@ -1,7 +1,9 @@
 #pragma once
 
 #include <imgui.h>
-
+#include <cstdint>
+#include <string>
+#include <chrono>
 #include <atomic>
 #include <functional>
 #include <iostream>
@@ -27,7 +29,7 @@ class View : public ::pugl::View {
     bool resizable = true;
     ::pugl::NativeView parent = ::pugl::NativeView{};
     fonts::FontId font_id = fonts::DefaultFontId;
-    size_t font_size = fonts::DefaultFontSize;
+    size_t font_size = fonts::kDefaultFontSize;
     Parameter();
     Parameter(std::string title, ::pugl::NativeView parent = ::pugl::NativeView{});
     Parameter(std::string title, PuglSpan width, PuglSpan height,
@@ -58,6 +60,8 @@ class View : public ::pugl::View {
   void SetOnCloseEventFunction(OnCloseEventFunction const& on_close_event_function);
   
   void SetFont(fonts::FontId const& font_id, size_t const& font_size);
+  void SetFontId(fonts::FontId const& font_id);
+  void SetFontSize(size_t const& font_size);
 
   Parameter const& GetParameter() const {return parameter_; }
   bool CloseFlag() const { return close_flag_; }

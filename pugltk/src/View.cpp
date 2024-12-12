@@ -83,10 +83,21 @@ void View::SetFont(fonts::FontId const& font_id, size_t const& font_size) {
   SetupFont();
 }
 
+void View::SetFontId(fonts::FontId const& font_id) {
+  parameter_.font_id = font_id;
+  SetupFont();
+}
+
+void View::SetFontSize(size_t const& font_size) {
+  parameter_.font_size = font_size;
+  SetupFont();
+}
+
 void View::SetupFont() {
   if (parameter_.font_id != fonts::FontId::kDefault) {
     ImGui::GetIO().Fonts->AddFontFromMemoryCompressedTTF(fonts::GetCompressedTTFData(parameter_.font_id),
-                                                         fonts::GetCompressedTTFSize(parameter_.font_id), 10 * scale_);
+                                                         fonts::GetCompressedTTFSize(parameter_.font_id),
+                                                         parameter_.font_size * scale_);
   } else {
     ImGui::GetIO().Fonts->ClearFonts();
     ImGui::GetIO().FontGlobalScale = scale_;
@@ -190,7 +201,7 @@ void View::SetupFont() {
   ImGui::NewFrame();
 
   // call client's render function
-  if (imgui_frame_function_ && imgui_frame_function_()) {
+  if (imgui_frame_function_ && !imgui_frame_function_()) {
     close_flag_ = true;
   }
 
@@ -207,7 +218,7 @@ void View::SetupFont() {
   glClear(GL_COLOR_BUFFER_BIT);
 
   // render client's opengl calls if any
-  if (opengl_frame_function_ && opengl_frame_function_()) {
+  if (opengl_frame_function_ && !opengl_frame_function_()) {
     close_flag_ = true;
   }
 
@@ -239,18 +250,21 @@ void View::SetupFont() {
 }
 
 ::pugl::Status View::onEvent(const ::pugl::KeyPressEvent& event) noexcept {
+  std::cout << __PRETTY_FUNCTION__ << std::endl;
   ImGui::SetCurrentContext(imgui_ctx_);
   ImGui_ImplPugl_KeyEventHandler(cobj(), &event);
   return ::pugl::Status::success;
 }
 
 ::pugl::Status View::onEvent(const ::pugl::KeyReleaseEvent& event) noexcept {
+  std::cout << __PRETTY_FUNCTION__ << std::endl;
   ImGui::SetCurrentContext(imgui_ctx_);
   ImGui_ImplPugl_KeyEventHandler(cobj(), &event);
   return ::pugl::Status::success;
 }
 
 ::pugl::Status View::onEvent(const ::pugl::TextEvent& event) noexcept {
+  std::cout << __PRETTY_FUNCTION__ << std::endl;
   ImGui::SetCurrentContext(imgui_ctx_);
   ImGui_ImplPugl_TextEventHandler(cobj(), &event);
   return ::pugl::Status::success;

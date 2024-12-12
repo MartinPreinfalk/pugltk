@@ -1,5 +1,7 @@
 #pragma once
 
+namespace pugltk::fonts {
+
 #ifdef PUGLTK_EMBED_FONTS
 #include "pugltk/fonts/cousine_regular_ttf.h"
 #include "pugltk/fonts/droid_sans_ttf.h"
@@ -9,9 +11,7 @@
 #include "pugltk/fonts/roboto_medium_ttf.h"
 #endif
 
-namespace pugltk::fonts {
-
-constexpr size_t DefaultFontSize = 10;
+constexpr size_t kDefaultFontSize = 20;
 
 enum class FontId {
   kDefault,
