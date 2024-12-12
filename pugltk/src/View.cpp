@@ -66,14 +66,11 @@ void View::SetupImGuiStyle() {
     // Setup Style (here we only use the default)
     ::ImGui::StyleColorsDark();
 
-    // Setup Font
+    // Setup font and font scaling
     SetupFont();
 
     // Setup style scaling
     ::ImGui::GetStyle().ScaleAllSizes(scale_);
-
-    // Setup font scaling
-    ImGui::GetIO().FontGlobalScale = scale_;
   }
 }
 
