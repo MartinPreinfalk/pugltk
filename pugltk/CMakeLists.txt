@@ -17,12 +17,12 @@ target_sources(${PROJECT_NAME}
       ext/glad/include
     FILES
       ext/glad/include/glad/glad.h
+      ext/glad/include/KHR/khrplatform.h
 )
 
 target_include_directories(${PROJECT_NAME}
   PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/glad/include>  
-#    $<INSTALL_INTERFACE:include>
 )
 
 # pugl
@@ -57,17 +57,15 @@ target_sources(${PROJECT_NAME}
 target_include_directories(${PROJECT_NAME}
   PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/pugl/include> 
-    #$<INSTALL_INTERFACE:pugl/include>
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/pugl/bindings/cpp/include> 
-    #$<INSTALL_INTERFACE:pugl/bindings/cpp/include>
   PRIVATE
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/pugl/src> 
-    #$<INSTALL_INTERFACE:pugl/src>
 )
 
 if(PUGL_X11)
-
 message(STATUS "pugl platform x11 and backend gl")
+find_package(X11 REQUIRED)
+find_package(OpenGL REQUIRED)
 
 target_sources(${PROJECT_NAME}
   PRIVATE
@@ -82,16 +80,10 @@ target_sources(${PROJECT_NAME}
       ext/pugl/include/pugl/gl.h
 )
 
-find_package(X11 REQUIRED)
-find_package(OpenGL REQUIRED)
-
 target_include_directories(${PROJECT_NAME}
   PRIVATE
     $<BUILD_INTERFACE:${X11_X11_INCLUDE_PATH}> 
 )
-
-message("X11_X11_INCLUDE_PATH: ${X11_X11_INCLUDE_PATH}")
-message("X11_X11_LIB: ${X11_X11_LIB}")
 
 target_link_libraries(${PROJECT_NAME}
   PRIVATE
@@ -125,7 +117,6 @@ target_sources(${PROJECT_NAME}
 target_include_directories(${PROJECT_NAME}
   PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/imgui>  
-    #$<INSTALL_INTERFACE:include>
 )
 
 if(IMGUI_PUGL_OPENGL3_BACKEND)
@@ -149,7 +140,6 @@ target_sources(${PROJECT_NAME}
 target_include_directories(${PROJECT_NAME}
   PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/imgui/backends>  
-    #$<INSTALL_INTERFACE:imgui/backends>
 )
 
 endif()
