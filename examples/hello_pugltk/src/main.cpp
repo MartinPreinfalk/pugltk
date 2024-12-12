@@ -39,7 +39,7 @@ int main(int argc, char** argv) {
       if (b > 1) b = 0;
       glClearColor(r, g, b, 1.0f);
       glClear(GL_COLOR_BUFFER_BIT);
-      return false;
+      return true;
     });
 
     // show view
