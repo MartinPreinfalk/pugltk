@@ -1,2 +1,2 @@
 add_subdirectory(hello_pugltk)
-add_subdirectory(eq_test)
+add_subdirectory(hello_layout)
