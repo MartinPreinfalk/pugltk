@@ -83,20 +83,23 @@ target_sources(${PROJECT_NAME}
 )
 
 find_package(X11 REQUIRED)
+find_package(OpenGL REQUIRED)
 
 target_include_directories(${PROJECT_NAME}
   PRIVATE
     $<BUILD_INTERFACE:${X11_X11_INCLUDE_PATH}> 
-    #$<INSTALL_INTERFACE:${X11_X11_INCLUDE_PATH}>
 )
+
+message("X11_X11_INCLUDE_PATH: ${X11_X11_INCLUDE_PATH}")
+message("X11_X11_LIB: ${X11_X11_LIB}")
 
 target_link_libraries(${PROJECT_NAME}
   PRIVATE
-    X11
-    GL
-    Xrandr
-    Xext
-    Xcursor
+    X11::X11
+    X11::Xcursor
+    X11::Xrandr
+    X11::Xext
+    OpenGL::GL
 )
 
 endif()
