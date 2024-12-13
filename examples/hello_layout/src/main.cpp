@@ -34,14 +34,44 @@ int main(int argc, char** argv) {
       ImGui::Begin("foo", &p_open, window_flags);
 
       // Plot as lines and plot as histogram
-      static float arr[] = {0.6f, 0.1f, 1.0f, 0.5f, 0.92f, 0.1f, 0.2f};
-      ImGui::PlotLines("Frame Times", arr, IM_ARRAYSIZE(arr), 0, nullptr, FLT_MAX, FLT_MAX, ImVec2(600.0, 400.0));
-      ImGui::SameLine();
-      ImGui::BeginGroup();
+        // static ImGuiTableFlags flags1 = ImGuiTableFlags_BordersV | ImGuiTableFlags_BordersOuterH | ImGuiTableFlags_RowBg | ImGuiTableFlags_ContextMenuInBody;
+            // EditTableSizingFlags(&sizing_policy_flags[table_n]);
+
+            // To make it easier to understand the different sizing policy,
+            // For each policy: we display one table where the columns have equal contents width,
+            // and one where the columns have different contents width.
+            // if (ImGui::BeginTable("table1", 3, ImGuiTableFlags_SizingFixedFit))
+            // {
+            //     for (int row = 0; row < 3; row++)
+            //     {
+            //         ImGui::TableNextRow();
+            //         ImGui::TableNextColumn(); ImGui::Text("Oh dear");
+            //         ImGui::TableNextColumn(); ImGui::Text("Oh dear");
+            //         ImGui::TableNextColumn(); ImGui::Text("Oh dear");
+            //     }
+            //     ImGui::EndTable();
+            // }
+      if (ImGui::BeginTable("upper", 2, ImGuiTableFlags_None)) {
+        ImGui::TableSetupColumn("##A", ImGuiTableColumnFlags_WidthStretch);
+        ImGui::TableSetupColumn("##B", ImGuiTableColumnFlags_WidthFixed, 200.0f);
+
+        ImGui::TableNextRow(ImGuiTableRowFlags_None, ImGui::GetMainViewport()->WorkSize.y /2);
+
+        ImGui::TableNextColumn();
+        static float arr[] = {0.6f, 0.1f, 1.0f, 0.5f, 0.92f, 0.1f, 0.2f};
+        ImGui::Button("Foo1");
+        // ImGui::PlotLines("Frame Times", arr, IM_ARRAYSIZE(arr), 0, nullptr, FLT_MAX, FLT_MAX, ImVec2(600.0, 400.0));      
+        ImGui::PlotLines("Frame Times", arr, IM_ARRAYSIZE(arr));      
+        
+        ImGui::TableNextColumn();
+        ImGui::BeginGroup();
         ImGui::Button("Foo");
-        ImGui::DragFloat("input_top", &input_level, 0.001f, -10.0f, 10.0f, "%.3f",
-                          ImGuiSliderFlags_AlwaysClamp);
-      ImGui::EndGroup();
+        ImGui::Text("Input");
+        ImGui::DragFloat("##input_top", &input_level, 0.001f, -10.0f, 10.0f, "%.3f",
+                            ImGuiSliderFlags_AlwaysClamp);
+        ImGui::EndGroup();
+        ImGui::EndTable();
+      }
 
       ImGui::Columns(8, "bottom", false);
       for (size_t i = 0; i < 8; ++i) {
