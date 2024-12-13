@@ -24,10 +24,11 @@ View::Parameter::Parameter(std::string title, PuglSpan width, PuglSpan height, :
 View::View(::pugl::World& world, ViewId const& view_id) : ::pugl::View{world}, view_id_(std::move(view_id)) {}
 
 ::pugl::Status View::Init(Parameter const& parameter, ImGuiFrameFunction const& imgui_frame_function) {
+  scale_ = ::puglGetScaleFactor(cobj());
   parameter_ = parameter;
   setString(::pugl::StringHint::windowTitle, parameter_.title.c_str());
-  setSizeHint(::pugl::SizeHint::defaultSize, parameter_.default_width, parameter_.default_height);
-  setSizeHint(::pugl::SizeHint::minSize, parameter_.min_width, parameter_.min_height);
+  setSizeHint(::pugl::SizeHint::defaultSize, parameter_.default_width * scale_, parameter_.default_height * scale_);
+  setSizeHint(::pugl::SizeHint::minSize, parameter_.min_width * scale_, parameter_.min_height * scale_);
   // setSizeHint(::pugl::SizeHint::maxSize, width, height);
   // setHint(::pugl::ViewHint::resizable, PUGL_FALSE);
   // setSizeHint(::pugl::SizeHint::minAspect, 1, 1);
@@ -48,30 +49,34 @@ View::View(::pugl::World& world, ViewId const& view_id) : ::pugl::View{world}, v
   return realize();  // realizes view
 }
 
-void View::SetupImGuiStyle() {
+void View::Rescale() {
   auto new_scale =
       ::puglGetScaleFactor(cobj());  // FIXME: at least on x11 the scale factor is only read on world init so
                                      // rescaling during runtime seems to be currently not supported by pugl
-  std::cout << "scale_ = " << scale_ << std::endl;
-  std::cout << "new_scale = " << new_scale << std::endl;
   if (new_scale != scale_) {  // first time and whenever it changes
+    std::cout << "scale_ = " << scale_ << std::endl;
+    std::cout << "new_scale = " << new_scale << std::endl;
     scale_ = new_scale;
     std::cout << "rescaling to scale_ = " << scale_ << std::endl;
-    // just in case, copy the old style
-    // ::ImGuiStyle prev_style = ::ImGui::GetStyle();
-
-    // start with a fresh initialized structure for re-scaling as mentioned in comment of ImGuiStyle::ScaleAllSizes()
-    // ::ImGui::GetStyle() = ImGuiStyle();
-
-    // Setup Style (here we only use the default)
-    ::ImGui::StyleColorsDark();
-
-    // Setup font and font scaling
-    SetupFont();
-
-    // Setup style scaling
-    ::ImGui::GetStyle().ScaleAllSizes(scale_);
+    SetupImGuiStyle();
   }
+}
+
+void View::SetupImGuiStyle() {
+  // just in case, copy the old style
+  // ::ImGuiStyle prev_style = ::ImGui::GetStyle();
+
+  // start with a fresh initialized structure for re-scaling as mentioned in comment of ImGuiStyle::ScaleAllSizes()
+  // ::ImGui::GetStyle() = ImGuiStyle();
+
+  // Setup Style (here we only use the default)
+  ::ImGui::StyleColorsDark();
+
+  // Setup font and font scaling
+  SetupFont();
+
+  // Setup style scaling
+  ::ImGui::GetStyle().ScaleAllSizes(scale_);
 }
 
 void View::SetFont(fonts::FontId const& font_id, size_t const& font_size) {
@@ -171,9 +176,8 @@ void View::SetupFont() {
 
   glViewport(0, 0, width_, height_);
 
-  // // Setup Dear ImGui style
-  // SetupImGuiStyle();  // FIXME: currently not used because (at least on x11) pugl does not support rescale during
-  //                     // runtime
+  // Setup Dear ImGui style
+  // Rescale();  // FIXME: currently not used because (at least on x11) pugl does not support rescale during runtime
 
   if (on_configure_event_function_) {
     on_configure_event_function_(xpos_, ypos_, width_, height_);
