@@ -4,10 +4,8 @@
 #include <experimental/map>
 #include <iostream>
 #include <stdexcept>
-namespace pugltk {
 
-using std::cout;
-using std::endl;
+namespace pugltk {
 
 Ui::Ui() = default;
 
