@@ -1,6 +1,6 @@
 #pragma once
 
-#define EN_LOG_TRACE
+// #define EN_LOG_TRACE
 #ifdef EN_LOG_TRACE
 #include <iostream>
 #define LOG_TRACE(msg)             \

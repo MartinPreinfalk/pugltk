@@ -56,10 +56,10 @@ void View::Rescale() {
       ::puglGetScaleFactor(cobj());  // FIXME: at least on x11 the scale factor is only read on world init so
                                      // rescaling during runtime seems to be currently not supported by pugl
   if (new_scale != scale_) {  // first time and whenever it changes
-    std::cout << "scale_ = " << scale_ << std::endl;
-    std::cout << "new_scale = " << new_scale << std::endl;
+    LOG_TRACE("scale_ = " << scale_);
+    LOG_TRACE("new_scale = " << new_scale);
     scale_ = new_scale;
-    std::cout << "rescaling to scale_ = " << scale_ << std::endl;
+    LOG_TRACE("rescaling to scale_ = " << scale_);
     SetupImGuiStyle();
   }
 }
@@ -109,7 +109,7 @@ void View::SetupFont() {
 }
 
 ::pugl::Status View::onEvent(const ::pugl::RealizeEvent& /*event*/) noexcept {
-  std::cerr << "RealizeEvent view " << parameter_.title << std::endl;
+  LOG_TRACE("RealizeEvent view " << parameter_.title);
   // context active, can be used to create shader, textures, ...
 
   // init glad
@@ -125,7 +125,6 @@ void View::SetupFont() {
   IMGUI_CHECKVERSION();
   imgui_ctx_ = ImGui::CreateContext();
   ImGui::SetCurrentContext(imgui_ctx_);
-
   LOG_TRACE("Platform_LocaleDecimalPoint: " << ImGui::GetPlatformIO().Platform_LocaleDecimalPoint);
   ImGui::GetPlatformIO().Platform_LocaleDecimalPoint = *localeconv()->decimal_point;
   LOG_TRACE("Platform_LocaleDecimalPoint: " << ImGui::GetPlatformIO().Platform_LocaleDecimalPoint);
@@ -151,7 +150,7 @@ void View::SetupFont() {
 }
 
 ::pugl::Status View::onEvent(const ::pugl::UnrealizeEvent& /*event*/) noexcept {
-  std::cerr << "UnrealizeEvent view " << parameter_.title << std::endl;
+  LOG_TRACE("UnrealizeEvent view " << parameter_.title);
   if (on_unrealize_event_function_) {
     on_unrealize_event_function_();
   }
@@ -165,14 +164,14 @@ void View::SetupFont() {
 }
 
 ::pugl::Status View::onEvent(const ::pugl::ConfigureEvent& event) noexcept {
-  std::cerr << "ConfigureEvent view " << parameter_.title << " "
+ LOG_TRACE( "ConfigureEvent view " << parameter_.title << " "
             << "x: " << event.x << ", "
             << "y: " << event.y << ", "
             << "width: " << event.width << ", "
             << "height: " << event.height << ", "
             << "style: " << event.style << ", "
             << "type: " << event.type << ", "
-            << "flags: " << event.flags << endl;
+            << "flags: " << event.flags);
 
   // context active, but no drawing possible
   xpos_ = event.x;
@@ -193,13 +192,13 @@ void View::SetupFont() {
 }
 
 ::pugl::Status View::onEvent(const ::pugl::UpdateEvent& /*event*/) noexcept {
-  // std::cerr << "UpdateEvent view " << title_ << std::endl;
+  // LOG_TRACE("UpdateEvent view " << title_);
   postRedisplay();  // request expose event on every update
   return ::pugl::Status::success;
 }
 
 ::pugl::Status View::onEvent(const ::pugl::ExposeEvent& /*event*/) noexcept {
-  // std::cerr << "ExposeEvent view " << title_ << std::endl;
+  // LOG_TRACE("ExposeEvent view " << title_);
 
   // Start the Dear ImGui frame
   ImGui::SetCurrentContext(imgui_ctx_);
@@ -236,7 +235,7 @@ void View::SetupFont() {
 }
 
 ::pugl::Status View::onEvent(const ::pugl::CloseEvent& /*event*/) noexcept {
-  std::cerr << "CloseEvent view " << parameter_.title << std::endl;
+  LOG_TRACE("CloseEvent view " << parameter_.title);
   close_flag_ = true;
   if (on_close_event_function_) {
     on_close_event_function_();
@@ -245,33 +244,33 @@ void View::SetupFont() {
 }
 
 ::pugl::Status View::onEvent(const ::pugl::FocusInEvent& event) noexcept {
-  ImGui::SetCurrentContext(imgui_ctx_);
+  LOG_TRACE(__PRETTY_FUNCTION__);
   ImGui_ImplPugl_FocusEventHandler(cobj(), &event);
   return ::pugl::Status::success;
 }
 
 ::pugl::Status View::onEvent(const ::pugl::FocusOutEvent& event) noexcept {
-  ImGui::SetCurrentContext(imgui_ctx_);
+  LOG_TRACE(__PRETTY_FUNCTION__);
   ImGui_ImplPugl_FocusEventHandler(cobj(), &event);
   return ::pugl::Status::success;
 }
 
 ::pugl::Status View::onEvent(const ::pugl::KeyPressEvent& event) noexcept {
-  std::cout << __PRETTY_FUNCTION__ << std::endl;
+  LOG_TRACE(__PRETTY_FUNCTION__ << " key: " << event.key);
   ImGui::SetCurrentContext(imgui_ctx_);
   ImGui_ImplPugl_KeyEventHandler(cobj(), &event);
   return ::pugl::Status::success;
 }
 
 ::pugl::Status View::onEvent(const ::pugl::KeyReleaseEvent& event) noexcept {
-  std::cout << __PRETTY_FUNCTION__ << std::endl;
+  LOG_TRACE(__PRETTY_FUNCTION__ << " key: " << event.key);
   ImGui::SetCurrentContext(imgui_ctx_);
   ImGui_ImplPugl_KeyEventHandler(cobj(), &event);
   return ::pugl::Status::success;
 }
 
 ::pugl::Status View::onEvent(const ::pugl::TextEvent& event) noexcept {
-  std::cout << __PRETTY_FUNCTION__ << std::endl;
+  LOG_TRACE(__PRETTY_FUNCTION__ << " character: " << event.character);
   ImGui::SetCurrentContext(imgui_ctx_);
   ImGui_ImplPugl_TextEventHandler(cobj(), &event);
   return ::pugl::Status::success;

@@ -4,10 +4,19 @@
 #include <experimental/map>
 #include <iostream>
 #include <stdexcept>
+#include "pugltk/internal/trace_macro.h"
 
 namespace pugltk {
 
 Ui::Ui() = default;
+
+Ui::~Ui() {
+  LOG_TRACE(__PRETTY_FUNCTION__);
+  try {
+    Hide();
+    DeInit();
+  } catch(...) {}
+}
 
 bool Ui::Init(::pugl::WorldType const& world_type) {
   if (pugl_world_ != nullptr) {
@@ -59,7 +68,7 @@ bool Ui::RemoveView(ViewId const& view_id) {
     return false;
   }
   auto view = view_it->second;
-  std::cerr << "hide view " << view_id << std::endl;
+  LOG_TRACE("hide view " << view_id);
   view->hide();
 
   views_.erase(view_it);
@@ -90,7 +99,7 @@ bool Ui::Render(double const& delta_t) {
 
   // check if main window was closed
   if (!main_view_ || (main_view_ && main_view_->CloseFlag())) {
-    std::cerr << "main window was closed" << std::endl;
+    LOG_TRACE("main window was closed");
     return false;
   }
 

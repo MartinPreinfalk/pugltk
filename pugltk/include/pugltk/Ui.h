@@ -12,6 +12,7 @@ class Ui {
  public:
   using ViewId = size_t;
   Ui();
+  virtual ~Ui();
   bool Init(::pugl::WorldType const& world_type);
   std::shared_ptr<View> AddView(View::Parameter const& parameter = View::Parameter{},
                                 View::ImGuiFrameFunction const& main_view_imgui_frame_function = nullptr);
