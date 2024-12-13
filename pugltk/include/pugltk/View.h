@@ -24,8 +24,8 @@ class View : public ::pugl::View {
  public:
   struct Parameter {
     std::string title = "Untitled";
-    PuglSpan default_width = 800, default_height = 600;
-    PuglSpan min_width = 640, min_height = 480;
+    PuglSpan default_width = 640, default_height = 480;
+    PuglSpan min_width = 0, min_height = 0;
     bool resizable = true;
     ::pugl::NativeView parent = ::pugl::NativeView{};
     fonts::FontId font_id = fonts::DefaultFontId;
@@ -114,6 +114,7 @@ class View : public ::pugl::View {
   OnConfigureEventFunction on_configure_event_function_;
   OnCloseEventFunction on_close_event_function_;
 
+  void Rescale();
   void SetupImGuiStyle();
   void SetupFont();
 };

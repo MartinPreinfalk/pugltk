@@ -33,64 +33,75 @@ int main(int argc, char** argv) {
 
       ImGui::Begin("foo", &p_open, window_flags);
 
-      // Plot as lines and plot as histogram
-        // static ImGuiTableFlags flags1 = ImGuiTableFlags_BordersV | ImGuiTableFlags_BordersOuterH | ImGuiTableFlags_RowBg | ImGuiTableFlags_ContextMenuInBody;
-            // EditTableSizingFlags(&sizing_policy_flags[table_n]);
+      constexpr float side_panel_w = 300;
+      constexpr size_t n_controls = 11;
 
-            // To make it easier to understand the different sizing policy,
-            // For each policy: we display one table where the columns have equal contents width,
-            // and one where the columns have different contents width.
-            // if (ImGui::BeginTable("table1", 3, ImGuiTableFlags_SizingFixedFit))
-            // {
-            //     for (int row = 0; row < 3; row++)
-            //     {
-            //         ImGui::TableNextRow();
-            //         ImGui::TableNextColumn(); ImGui::Text("Oh dear");
-            //         ImGui::TableNextColumn(); ImGui::Text("Oh dear");
-            //         ImGui::TableNextColumn(); ImGui::Text("Oh dear");
-            //     }
-            //     ImGui::EndTable();
-            // }
+
+      const float h_lower_panel = ImGui::GetFrameHeight() * n_controls;
+      ImVec2 plot_size{ImGui::GetContentRegionAvail().x - side_panel_w, ImGui::GetContentRegionAvail().y - h_lower_panel};
+
       if (ImGui::BeginTable("upper", 2, ImGuiTableFlags_None)) {
         ImGui::TableSetupColumn("##A", ImGuiTableColumnFlags_WidthStretch);
-        ImGui::TableSetupColumn("##B", ImGuiTableColumnFlags_WidthFixed, 200.0f);
+        ImGui::TableSetupColumn("##B", ImGuiTableColumnFlags_WidthFixed, side_panel_w);
 
-        ImGui::TableNextRow(ImGuiTableRowFlags_None, ImGui::GetMainViewport()->WorkSize.y /2);
+        // ImGui::TableNextRow(ImGuiTableRowFlags_None, );
 
         ImGui::TableNextColumn();
         static float arr[] = {0.6f, 0.1f, 1.0f, 0.5f, 0.92f, 0.1f, 0.2f};
-        ImGui::Button("Foo1");
-        // ImGui::PlotLines("Frame Times", arr, IM_ARRAYSIZE(arr), 0, nullptr, FLT_MAX, FLT_MAX, ImVec2(600.0, 400.0));      
-        ImGui::PlotLines("Frame Times", arr, IM_ARRAYSIZE(arr));      
-        
+        ImGui::PlotLines("##Frame Times", arr, IM_ARRAYSIZE(arr), 0, nullptr, FLT_MAX, FLT_MAX, plot_size);
+
         ImGui::TableNextColumn();
         ImGui::BeginGroup();
         ImGui::Button("Foo");
         ImGui::Text("Input");
-        ImGui::DragFloat("##input_top", &input_level, 0.001f, -10.0f, 10.0f, "%.3f",
-                            ImGuiSliderFlags_AlwaysClamp);
+
+        ImGui::SetNextItemWidth(
+            ImGui::GetContentRegionAvail().x);
+        ImGui::DragFloat("##input_top", &input_level, 0.001f, -10.0f, 10.0f, "%.3f", ImGuiSliderFlags_AlwaysClamp);
         ImGui::EndGroup();
         ImGui::EndTable();
       }
 
-      ImGui::Columns(8, "bottom", false);
-      for (size_t i = 0; i < 8; ++i) {
-        ImGui::Button(("Fooo" + std::to_string(i)).c_str());
-        ImGui::DragFloat(("input_bottom_1_" + std::to_string(i)).c_str(), &input_level, 0.001f, -10.0f, 10.0f, "%.3f",
-                         ImGuiSliderFlags_AlwaysClamp);
-        ImGui::DragFloat(("input_bottom_2_" + std::to_string(i)).c_str(), &input_level, 0.001f, -10.0f, 10.0f, "%.3f",
-                         ImGuiSliderFlags_AlwaysClamp);
-        ImGui::DragFloat(("input_bottom_3_" + std::to_string(i)).c_str(), &input_level, 0.001f, -10.0f, 10.0f, "%.3f",
-                         ImGuiSliderFlags_AlwaysClamp);
-        ImGui::DragFloat(("input_bottom_4_" + std::to_string(i)).c_str(), &input_level, 0.001f, -10.0f, 10.0f, "%.3f",
-                         ImGuiSliderFlags_AlwaysClamp);
-        ImGui::Button(("Foooo" + std::to_string(i)).c_str());
-        ImGui::NextColumn();
-      }
+      if (ImGui::BeginTable("lower", 8)) {
+        for (size_t i = 0; i < 8; ++i) {
+          ImGui::TableNextColumn();
+  
+          ImGui::Text("Filter %lu", i);
 
-      ImGui::Columns(1);
-      if (ImGui::Button("show_demo")) {
-        show_demo = true;
+          ImGui::Button(("Fooo" + std::to_string(i)).c_str());
+
+          ImGui::Text("f / Hz");
+
+          ImGui::SetNextItemWidth(
+              ImGui::GetContentRegionAvail().x);
+          // ImGui::DragFloat(("##input_bottom_1_" + std::to_string(i)).c_str(), &input_level, 0.001f, -10.0f, 10.0f,
+          //                  "%.3f", ImGuiSliderFlags_AlwaysClamp);
+
+          ImGui::SliderFloat(("##input_bottom_1_" + std::to_string(i)).c_str(), &input_level, -10.0f, 10.0f,
+                           "%.3f", ImGuiSliderFlags_AlwaysClamp);
+
+          ImGui::Text("Q");
+
+          ImGui::SetNextItemWidth(
+              ImGui::GetContentRegionAvail().x);
+          ImGui::DragFloat(("##input_bottom_2_" + std::to_string(i)).c_str(), &input_level, 0.001f, -10.0f, 10.0f,
+                           "%.3f", ImGuiSliderFlags_AlwaysClamp);
+
+          ImGui::Text("Gain");
+
+          ImGui::SetNextItemWidth(
+              ImGui::GetContentRegionAvail().x);
+          ImGui::DragFloat(("##input_bottom_3_" + std::to_string(i)).c_str(), &input_level, 0.001f, -10.0f, 10.0f,
+                           "%.3f", ImGuiSliderFlags_AlwaysClamp);
+          ImGui::SetNextItemWidth(
+              ImGui::GetContentRegionAvail().x);
+          ImGui::DragFloat(("##input_bottom_4_" + std::to_string(i)).c_str(), &input_level, 0.001f, -10.0f, 10.0f,
+                           "%.3f", ImGuiSliderFlags_AlwaysClamp);
+          ImGui::SetNextItemWidth(
+              ImGui::GetContentRegionAvail().x);
+          ImGui::Button(("Foooo" + std::to_string(i)).c_str(), ImVec2(ImGui::GetContentRegionAvail().x, 0));
+        }
+        ImGui::EndTable();
       }
 
       // ImGui::VSliderFloat("##v", ImVec2(18, 160), &input_level, 0.0f, 1.0f, "");
