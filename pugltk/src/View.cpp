@@ -12,6 +12,8 @@
 
 #include "pugltk/fonts/roboto_medium_ttf.h"
 
+#include "pugltk/internal/trace_macro.h"
+
 namespace pugltk {
 
 View::Parameter::Parameter() {}
@@ -123,6 +125,10 @@ void View::SetupFont() {
   IMGUI_CHECKVERSION();
   imgui_ctx_ = ImGui::CreateContext();
   ImGui::SetCurrentContext(imgui_ctx_);
+
+  LOG_TRACE("Platform_LocaleDecimalPoint: " << ImGui::GetPlatformIO().Platform_LocaleDecimalPoint);
+  ImGui::GetPlatformIO().Platform_LocaleDecimalPoint = *localeconv()->decimal_point;
+  LOG_TRACE("Platform_LocaleDecimalPoint: " << ImGui::GetPlatformIO().Platform_LocaleDecimalPoint);
 
   // ImGuiIO& io = ImGui::GetIO();
   // (void)io;
