@@ -182,6 +182,25 @@ target_include_directories(${PROJECT_NAME}
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/imgui-knobs>
 )
 
+# imgui-meter
+target_sources(${PROJECT_NAME}
+  PRIVATE
+    ext/imgui-meter/src/imgui-meter.cpp
+    ext/imgui-meter/src/imgui-meter-demo.cpp
+  PUBLIC
+    FILE_SET imgui_meter
+    TYPE HEADERS
+    BASE_DIRS
+      ext/imgui-meter/include
+    FILES
+      ext/imgui-meter/include/imgui-meter/imgui-meter.h
+)
+
+target_include_directories(${PROJECT_NAME}
+  PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/imgui-meter>
+)
+
 # pugltk
 target_sources(${PROJECT_NAME}
   PRIVATE
@@ -282,6 +301,7 @@ install(TARGETS ${PROJECT_NAME}
   FILE_SET imgui_knobs
   FILE_SET pugltk_fonts
   FILE_SET implot_headers
+  FILE_SET imgui_meter
   FILE_SET HEADERS
   LIBRARY DESTINATION lib
   ARCHIVE DESTINATION lib

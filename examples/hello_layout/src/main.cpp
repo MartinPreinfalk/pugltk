@@ -4,6 +4,7 @@
 
 #include "pugltk/Ui.h"
 #include "imgui-knobs.h"
+#include "imgui-meter/imgui-meter.h"
 
 using namespace std;
 using namespace std::chrono_literals;
@@ -80,6 +81,7 @@ int main(int argc, char** argv) {
         ImGui::SetNextItemWidth(
             ImGui::GetContentRegionAvail().x);
         ImGuiKnobs::Knob("##input_top", &input_level, -10.0f, 10.0f, 0.0f, "%.2f", ImGuiKnobVariant_WiperOnly, 0, ImGuiKnobFlags_NoTitle);
+
         // ImGui::DragFloat("##input_top", &input_level, 0.001f, -10.0f, 10.0f, "%.3f", ImGuiSliderFlags_AlwaysClamp);
         ImGui::EndGroup();
         ImGui::EndTable();
@@ -144,6 +146,7 @@ int main(int argc, char** argv) {
           bool p_open = true;
           ImGui::ShowDemoWindow(&p_open);
           ImPlot::ShowDemoWindow(&p_open);
+          ImGuiMeter::ShowDemoWindow(&p_open);
           cout << p_open << endl;
           return p_open;
         });
