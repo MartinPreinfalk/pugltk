@@ -16,7 +16,7 @@ int main(int argc, char** argv) {
     cout << "init ui...\n";
     ui.Init(::pugl::WorldType::program);
     cout << "init view...\n";
-    auto main_view = ui.AddView(pugltk::View::Parameter("Hello ImGui Pugl UI", 800, 600), [&foo, &create_view]() {
+    auto main_view = ui.AddView(pugltk::View::Parameter("Hello ImGui Pugl UI", 800, 600), [&foo, &create_view](::pugltk::View const& /*view*/) {
       ImGui::SetWindowFontScale(1.0);
       if (ImGui::Button("foo++")) {
         foo++;
@@ -30,7 +30,7 @@ int main(int argc, char** argv) {
       return true;
     });
     double r = 0, g = 0, b = 0;
-    main_view->SetOpenGlFrameFunction([&r, &g, &b]() {
+    main_view->SetOpenGlFrameFunction([&r, &g, &b](::pugltk::View const& /*view*/) {
       r += 0.01;
       g += 0.011;
       b += 0.012;
@@ -51,7 +51,7 @@ int main(int argc, char** argv) {
       if (create_view) {
         std::cout << "creating view..." << std::endl;
         auto params = pugltk::View::Parameter("Hello ImGui Pugl UI Bar", 800, 600);
-        ui.AddView(params, [&bar]() {
+        ui.AddView(params, [&bar](::pugltk::View const& /*view*/) {
           if (ImGui::Button("bar++")) {
             bar++;
           }

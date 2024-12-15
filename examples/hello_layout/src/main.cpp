@@ -17,7 +17,7 @@ int main(int argc, char** argv) {
     cout << "init ui...\n";
     ui.Init(::pugl::WorldType::program);
     cout << "init view...\n";
-    auto main_view = ui.AddView(pugltk::View::Parameter("Hello Layout", 800, 600), [&show_demo, &input_level]() {
+    auto main_view = ui.AddView(pugltk::View::Parameter("Hello Layout", 800, 600), [&show_demo, &input_level](::pugltk::View const& /*view*/) {
       bool p_open = true;
       ImGui::SetNextWindowSize(ImGui::GetMainViewport()->WorkSize, ImGuiCond_Always);
       ImGui::SetNextWindowPos(ImGui::GetMainViewport()->WorkPos, ImGuiCond_Always);
@@ -140,7 +140,7 @@ int main(int argc, char** argv) {
     while (ui.Render(0.04)) {
       if (show_demo) {
         show_demo = false;
-        auto demo = ui.AddView(pugltk::View::Parameter("Demo", 800, 600), []() {
+        auto demo = ui.AddView(pugltk::View::Parameter("Demo", 800, 600), [](::pugltk::View const& /*view*/) {
           bool p_open = true;
           ImGui::ShowDemoWindow(&p_open);
           ImPlot::ShowDemoWindow(&p_open);

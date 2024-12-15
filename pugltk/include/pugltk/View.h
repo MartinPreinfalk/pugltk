@@ -37,10 +37,10 @@ class View : public ::pugl::View {
     Parameter(std::string title, PuglSpan width, PuglSpan height, ::pugl::NativeView parent = ::pugl::NativeView{});
   };
 
-  using ImGuiFrameFunction = std::function<bool()>;
-  using OpenGlFrameFunction = std::function<bool()>;
-  using OnRealizeEventFunction = std::function<void()>;
-  using OnUnrealizeEventFunction = std::function<void()>;
+  using ImGuiFrameFunction = std::function<bool(View const&)>;
+  using OpenGlFrameFunction = std::function<bool(View const&)>;
+  using OnRealizeEventFunction = std::function<void(View const&)>;
+  using OnUnrealizeEventFunction = std::function<void(View const&)>;
   using OnConfigureEventFunction =
       std::function<void(PuglCoord const& xpos, PuglCoord const& ypos, PuglSpan const& width, PuglSpan const& height)>;
   using OnCloseEventFunction = std::function<void()>;
