@@ -149,7 +149,7 @@ void View::SetContextCurrent() {
   SetupImGuiStyle();
 
   if (on_realize_event_function_) {
-    on_realize_event_function_();
+    on_realize_event_function_(*this);
   }
 
   return ::pugl::Status::success;
@@ -158,7 +158,7 @@ void View::SetContextCurrent() {
 ::pugl::Status View::onEvent(const ::pugl::UnrealizeEvent& /*event*/) noexcept {
   LOG_TRACE("UnrealizeEvent view " << parameter_.title);
   if (on_unrealize_event_function_) {
-    on_unrealize_event_function_();
+    on_unrealize_event_function_(*this);
   }
   // context active, can be used to destroy shader, textures, ...
   SetContextCurrent();
@@ -217,7 +217,7 @@ void View::SetContextCurrent() {
   ImGui::NewFrame();
 
   // call client's render function
-  if (imgui_frame_function_ && !imgui_frame_function_()) {
+  if (imgui_frame_function_ && !imgui_frame_function_(*this)) {
     close_flag_ = true;
   }
 
@@ -234,7 +234,7 @@ void View::SetContextCurrent() {
   glClear(GL_COLOR_BUFFER_BIT);
 
   // render client's opengl calls if any
-  if (opengl_frame_function_ && !opengl_frame_function_()) {
+  if (opengl_frame_function_ && !opengl_frame_function_(*this)) {
     close_flag_ = true;
   }
 
