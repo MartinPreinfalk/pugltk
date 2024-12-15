@@ -7,3 +7,6 @@
 [submodule "pugltk/ext/implot"]
 	path = pugltk/ext/implot
 	url = https://github.com/MartinPreinfalk/implot.git
+[submodule "pugltk/ext/imgui-knobs"]
+	path = pugltk/ext/imgui-knobs
+	url = https://github.com/MartinPreinfalk/imgui-knobs.git

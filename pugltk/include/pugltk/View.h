@@ -1,17 +1,19 @@
 #pragma once
 
 #include <imgui.h>
-#include <cstdint>
-#include <string>
-#include <chrono>
+#include <implot.h>
+
 #include <atomic>
+#include <chrono>
+#include <cstdint>
 #include <functional>
 #include <iostream>
 #include <pugl/pugl.hpp>
+#include <string>
 #include <thread>
 
-#include "glad/glad.h"
 #include "fonts/fonts.h"
+#include "glad/glad.h"
 
 using namespace std;
 using namespace std::chrono_literals;
@@ -32,8 +34,7 @@ class View : public ::pugl::View {
     size_t font_size = fonts::kDefaultFontSize;
     Parameter();
     Parameter(std::string title, ::pugl::NativeView parent = ::pugl::NativeView{});
-    Parameter(std::string title, PuglSpan width, PuglSpan height,
-                       ::pugl::NativeView parent = ::pugl::NativeView{});
+    Parameter(std::string title, PuglSpan width, PuglSpan height, ::pugl::NativeView parent = ::pugl::NativeView{});
   };
 
   using ImGuiFrameFunction = std::function<bool()>;
@@ -58,12 +59,12 @@ class View : public ::pugl::View {
   void SetOnUnrealizeEventFunction(OnUnrealizeEventFunction const& on_unrealize_event_function);
   void SetOnConfigureEventFunction(OnConfigureEventFunction const& on_configure_event_function);
   void SetOnCloseEventFunction(OnCloseEventFunction const& on_close_event_function);
-  
+
   void SetFont(fonts::FontId const& font_id, size_t const& font_size);
   void SetFontId(fonts::FontId const& font_id);
   void SetFontSize(size_t const& font_size);
 
-  Parameter const& GetParameter() const {return parameter_; }
+  Parameter const& GetParameter() const { return parameter_; }
   bool CloseFlag() const { return close_flag_; }
   PuglCoord XPos() const { return xpos_; }
   PuglCoord YPos() const { return ypos_; }
@@ -106,6 +107,7 @@ class View : public ::pugl::View {
   PuglCoord xpos_ = 0, ypos_ = 0;
   PuglSpan width_ = 0, height_ = 0;
   ImGuiContext* imgui_ctx_ = nullptr;
+  ImPlotContext* implot_ctx_ = nullptr;
   double scale_ = std::numeric_limits<double>::quiet_NaN();
   ImGuiFrameFunction imgui_frame_function_;
   OpenGlFrameFunction opengl_frame_function_;
@@ -117,6 +119,7 @@ class View : public ::pugl::View {
   void Rescale();
   void SetupImGuiStyle();
   void SetupFont();
+  void SetContextCurrent();
 };
 
 }  // namespace pugltk

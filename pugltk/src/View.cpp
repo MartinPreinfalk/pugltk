@@ -10,8 +10,6 @@
 #include <imgui_impl_opengl3.h>
 // clang-format on
 
-#include "pugltk/fonts/roboto_medium_ttf.h"
-
 #include "pugltk/internal/trace_macro.h"
 
 namespace pugltk {
@@ -55,11 +53,10 @@ void View::Rescale() {
   auto new_scale =
       ::puglGetScaleFactor(cobj());  // FIXME: at least on x11 the scale factor is only read on world init so
                                      // rescaling during runtime seems to be currently not supported by pugl
-  if (new_scale != scale_) {  // first time and whenever it changes
-    std::cout << "scale_ = " << scale_ << std::endl;
-    std::cout << "new_scale = " << new_scale << std::endl;
+  if (new_scale != scale_) {         // first time and whenever it changes
+    LOG_TRACE("scale_ = " << scale_ << ", new_scale = " << new_scale);
     scale_ = new_scale;
-    std::cout << "rescaling to scale_ = " << scale_ << std::endl;
+    LOG_TRACE("rescaling to scale_ = " << scale_);
     SetupImGuiStyle();
   }
 }
@@ -98,6 +95,7 @@ void View::SetFontSize(size_t const& font_size) {
 }
 
 void View::SetupFont() {
+  SetContextCurrent();
   if (parameter_.font_id != fonts::FontId::kDefault) {
     ImGui::GetIO().Fonts->AddFontFromMemoryCompressedTTF(fonts::GetCompressedTTFData(parameter_.font_id),
                                                          fonts::GetCompressedTTFSize(parameter_.font_id),
@@ -108,8 +106,13 @@ void View::SetupFont() {
   }
 }
 
+void View::SetContextCurrent() {
+  if (imgui_ctx_) ImGui::SetCurrentContext(imgui_ctx_);
+  if (implot_ctx_) ImPlot::SetCurrentContext(implot_ctx_);
+}
+
 ::pugl::Status View::onEvent(const ::pugl::RealizeEvent& /*event*/) noexcept {
-  std::cerr << "RealizeEvent view " << parameter_.title << std::endl;
+  LOG_TRACE("RealizeEvent view " << parameter_.title);;
   // context active, can be used to create shader, textures, ...
 
   // init glad
@@ -124,7 +127,9 @@ void View::SetupFont() {
   // Setup Dear ImGui context
   IMGUI_CHECKVERSION();
   imgui_ctx_ = ImGui::CreateContext();
-  ImGui::SetCurrentContext(imgui_ctx_);
+  SetContextCurrent();
+  implot_ctx_ = ImPlot::CreateContext();
+  SetContextCurrent();
 
   LOG_TRACE("Platform_LocaleDecimalPoint: " << ImGui::GetPlatformIO().Platform_LocaleDecimalPoint);
   ImGui::GetPlatformIO().Platform_LocaleDecimalPoint = *localeconv()->decimal_point;
@@ -151,28 +156,32 @@ void View::SetupFont() {
 }
 
 ::pugl::Status View::onEvent(const ::pugl::UnrealizeEvent& /*event*/) noexcept {
-  std::cerr << "UnrealizeEvent view " << parameter_.title << std::endl;
+  LOG_TRACE("UnrealizeEvent view " << parameter_.title);
   if (on_unrealize_event_function_) {
     on_unrealize_event_function_();
   }
   // context active, can be used to destroy shader, textures, ...
-  ImGui::SetCurrentContext(imgui_ctx_);
+  SetContextCurrent();
   ImGui_ImplOpenGL3_Shutdown();
   ImGui_ImplPugl_Shutdown();
+
+  ImPlot::DestroyContext(implot_ctx_);
+  implot_ctx_ = nullptr;
   ImGui::DestroyContext(imgui_ctx_);
+  imgui_ctx_ = nullptr;
 
   return ::pugl::Status::success;
 }
 
 ::pugl::Status View::onEvent(const ::pugl::ConfigureEvent& event) noexcept {
-  std::cerr << "ConfigureEvent view " << parameter_.title << " "
-            << "x: " << event.x << ", "
-            << "y: " << event.y << ", "
-            << "width: " << event.width << ", "
-            << "height: " << event.height << ", "
-            << "style: " << event.style << ", "
-            << "type: " << event.type << ", "
-            << "flags: " << event.flags << endl;
+  LOG_TRACE("ConfigureEvent view " << parameter_.title << " "
+                                   << "x: " << event.x << ", "
+                                   << "y: " << event.y << ", "
+                                   << "width: " << event.width << ", "
+                                   << "height: " << event.height << ", "
+                                   << "style: " << event.style << ", "
+                                   << "type: " << event.type << ", "
+                                   << "flags: " << event.flags);
 
   // context active, but no drawing possible
   xpos_ = event.x;
@@ -193,16 +202,16 @@ void View::SetupFont() {
 }
 
 ::pugl::Status View::onEvent(const ::pugl::UpdateEvent& /*event*/) noexcept {
-  // std::cerr << "UpdateEvent view " << title_ << std::endl;
+  // LOG_TRACE("UpdateEvent view " << title_);
   postRedisplay();  // request expose event on every update
   return ::pugl::Status::success;
 }
 
 ::pugl::Status View::onEvent(const ::pugl::ExposeEvent& /*event*/) noexcept {
-  // std::cerr << "ExposeEvent view " << title_ << std::endl;
+  // LOG_TRACE("ExposeEvent view " << title_);
 
   // Start the Dear ImGui frame
-  ImGui::SetCurrentContext(imgui_ctx_);
+  SetContextCurrent();
   ImGui_ImplOpenGL3_NewFrame();
   ImGui_ImplPugl_NewFrame();
   ImGui::NewFrame();
@@ -236,7 +245,7 @@ void View::SetupFont() {
 }
 
 ::pugl::Status View::onEvent(const ::pugl::CloseEvent& /*event*/) noexcept {
-  std::cerr << "CloseEvent view " << parameter_.title << std::endl;
+  LOG_TRACE("CloseEvent view " << parameter_.title);
   close_flag_ = true;
   if (on_close_event_function_) {
     on_close_event_function_();
@@ -245,88 +254,109 @@ void View::SetupFont() {
 }
 
 ::pugl::Status View::onEvent(const ::pugl::FocusInEvent& event) noexcept {
-  ImGui::SetCurrentContext(imgui_ctx_);
+  SetContextCurrent();
   ImGui_ImplPugl_FocusEventHandler(cobj(), &event);
   return ::pugl::Status::success;
 }
 
 ::pugl::Status View::onEvent(const ::pugl::FocusOutEvent& event) noexcept {
-  ImGui::SetCurrentContext(imgui_ctx_);
+  SetContextCurrent();
   ImGui_ImplPugl_FocusEventHandler(cobj(), &event);
   return ::pugl::Status::success;
 }
 
 ::pugl::Status View::onEvent(const ::pugl::KeyPressEvent& event) noexcept {
-  std::cout << __PRETTY_FUNCTION__ << std::endl;
-  ImGui::SetCurrentContext(imgui_ctx_);
+  LOG_TRACE(__PRETTY_FUNCTION__);
+  SetContextCurrent();
   ImGui_ImplPugl_KeyEventHandler(cobj(), &event);
   return ::pugl::Status::success;
 }
 
 ::pugl::Status View::onEvent(const ::pugl::KeyReleaseEvent& event) noexcept {
-  std::cout << __PRETTY_FUNCTION__ << std::endl;
-  ImGui::SetCurrentContext(imgui_ctx_);
+  LOG_TRACE(__PRETTY_FUNCTION__);
+  SetContextCurrent();
   ImGui_ImplPugl_KeyEventHandler(cobj(), &event);
   return ::pugl::Status::success;
 }
 
 ::pugl::Status View::onEvent(const ::pugl::TextEvent& event) noexcept {
-  std::cout << __PRETTY_FUNCTION__ << std::endl;
-  ImGui::SetCurrentContext(imgui_ctx_);
+  LOG_TRACE(__PRETTY_FUNCTION__);
+  SetContextCurrent();
   ImGui_ImplPugl_TextEventHandler(cobj(), &event);
   return ::pugl::Status::success;
 }
 
 ::pugl::Status View::onEvent(const ::pugl::PointerInEvent& event) noexcept {
-  ImGui::SetCurrentContext(imgui_ctx_);
+  LOG_TRACE(__PRETTY_FUNCTION__);
+  SetContextCurrent();
   ImGui_ImplPugl_CrossingEventHandler(cobj(), &event);
   return ::pugl::Status::success;
 }
 
 ::pugl::Status View::onEvent(const ::pugl::PointerOutEvent& event) noexcept {
-  ImGui::SetCurrentContext(imgui_ctx_);
+  LOG_TRACE(__PRETTY_FUNCTION__);
+  SetContextCurrent();
   ImGui_ImplPugl_CrossingEventHandler(cobj(), &event);
   return ::pugl::Status::success;
 }
 
 ::pugl::Status View::onEvent(const ::pugl::ButtonPressEvent& event) noexcept {
-  ImGui::SetCurrentContext(imgui_ctx_);
+  LOG_TRACE(__PRETTY_FUNCTION__);
+  SetContextCurrent();
   ImGui_ImplPugl_ButtonEventHandler(cobj(), &event);
   return ::pugl::Status::success;
 }
 
 ::pugl::Status View::onEvent(const ::pugl::ButtonReleaseEvent& event) noexcept {
-  ImGui::SetCurrentContext(imgui_ctx_);
+  LOG_TRACE(__PRETTY_FUNCTION__);
+  SetContextCurrent();
   ImGui_ImplPugl_ButtonEventHandler(cobj(), &event);
   return ::pugl::Status::success;
 }
 
 ::pugl::Status View::onEvent(const ::pugl::MotionEvent& event) noexcept {
-  ImGui::SetCurrentContext(imgui_ctx_);
+  LOG_TRACE(__PRETTY_FUNCTION__);
+  SetContextCurrent();
   ImGui_ImplPugl_MotionEventHandler(cobj(), &event);
   return ::pugl::Status::success;
 }
 
 ::pugl::Status View::onEvent(const ::pugl::ScrollEvent& event) noexcept {
-  ImGui::SetCurrentContext(imgui_ctx_);
+  LOG_TRACE(__PRETTY_FUNCTION__);
+  SetContextCurrent();
   ImGui_ImplPugl_ScrollEventHandler(cobj(), &event);
   return ::pugl::Status::success;
 }
 
-::pugl::Status View::onEvent(const ::pugl::ClientEvent& /*event*/) noexcept { return ::pugl::Status::success; }
-::pugl::Status View::onEvent(const ::pugl::TimerEvent& /*event*/) noexcept { return ::pugl::Status::success; }
-::pugl::Status View::onEvent(const ::pugl::LoopEnterEvent& /*event*/) noexcept { return ::pugl::Status::success; }
-::pugl::Status View::onEvent(const ::pugl::LoopLeaveEvent& /*event*/) noexcept { return ::pugl::Status::success; }
-::pugl::Status View::onEvent(const ::pugl::DataOfferEvent& /*event*/) noexcept { return ::pugl::Status::success; }
-::pugl::Status View::onEvent(const ::pugl::DataEvent& /*event*/) noexcept { return ::pugl::Status::success; }
+::pugl::Status View::onEvent(const ::pugl::ClientEvent& /*event*/) noexcept {
+  LOG_TRACE(__PRETTY_FUNCTION__);
+  return ::pugl::Status::success;
+}
 
-// // catch all for unused event types
-// template <typename EventType>
-// ::pugl::Status onEvent(const EventType& event) noexcept {
-//   ImGui::SetCurrentContext(imgui_ctx_);
-//   ImGui_ImplPugl_EventHandler(cobj(), (PuglEvent*)(&event));
-//   return ::pugl::Status::success;
-// }
+::pugl::Status View::onEvent(const ::pugl::TimerEvent& /*event*/) noexcept {
+  LOG_TRACE(__PRETTY_FUNCTION__);
+  return ::pugl::Status::success;
+}
+
+::pugl::Status View::onEvent(const ::pugl::LoopEnterEvent& /*event*/) noexcept {
+  LOG_TRACE(__PRETTY_FUNCTION__);
+  return ::pugl::Status::success;
+}
+
+::pugl::Status View::onEvent(const ::pugl::LoopLeaveEvent& /*event*/) noexcept {
+  LOG_TRACE(__PRETTY_FUNCTION__);
+  return ::pugl::Status::success;
+}
+
+::pugl::Status View::onEvent(const ::pugl::DataOfferEvent& /*event*/) noexcept {
+  LOG_TRACE(__PRETTY_FUNCTION__);
+  return ::pugl::Status::success;
+}
+
+::pugl::Status View::onEvent(const ::pugl::DataEvent& /*event*/) noexcept {
+  LOG_TRACE(__PRETTY_FUNCTION__);
+  return ::pugl::Status::success;
+}
 
 void View::SetImGuiFrameFunction(ImGuiFrameFunction const& imgui_frame_function) {
   imgui_frame_function_ = imgui_frame_function;
