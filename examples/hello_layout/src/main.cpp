@@ -1,7 +1,9 @@
 
 #include <iostream>
+#include <cmath>
 
 #include "pugltk/Ui.h"
+#include "imgui-knobs.h"
 
 using namespace std;
 using namespace std::chrono_literals;
@@ -47,17 +49,38 @@ int main(int argc, char** argv) {
         // ImGui::TableNextRow(ImGuiTableRowFlags_None, );
 
         ImGui::TableNextColumn();
-        static float arr[] = {0.6f, 0.1f, 1.0f, 0.5f, 0.92f, 0.1f, 0.2f};
-        ImGui::PlotLines("##Frame Times", arr, IM_ARRAYSIZE(arr), 0, nullptr, FLT_MAX, FLT_MAX, plot_size);
+        // static float arr[] = {0.6f, 0.1f, 1.0f, 0.5f, 0.92f, 0.1f, 0.2f};
+        // ImGui::PlotLines("##Frame Times", arr, IM_ARRAYSIZE(arr), 0, nullptr, FLT_MAX, FLT_MAX, plot_size);
+
+        static float xs1[1001], ys1[1001];
+        for (int i = 0; i < 1001; ++i) {
+            xs1[i] = i * 0.001f;
+            ys1[i] = 0.5f + 0.5f * ::sinf(50 * (xs1[i] + (float)ImGui::GetTime() / 10));
+        }
+        static double xs2[20], ys2[20];
+        for (int i = 0; i < 20; ++i) {
+            xs2[i] = i * 1/19.0f;
+            ys2[i] = xs2[i] * xs2[i];
+        }
+        if (ImPlot::BeginPlot("Line Plots", plot_size)) {
+            ImPlot::SetupAxes("x","y");
+            ImPlot::PlotLine("f(x)", xs1, ys1, 1001);
+            ImPlot::SetNextMarkerStyle(ImPlotMarker_Circle);
+            ImPlot::PlotLine("g(x)", xs2, ys2, 20,ImPlotLineFlags_Segments);
+            ImPlot::EndPlot();
+        }
 
         ImGui::TableNextColumn();
         ImGui::BeginGroup();
-        ImGui::Button("Foo");
+        if (ImGui::Button("Show Demo Windows")){
+          show_demo = true;
+        }
         ImGui::Text("Input");
 
         ImGui::SetNextItemWidth(
             ImGui::GetContentRegionAvail().x);
-        ImGui::DragFloat("##input_top", &input_level, 0.001f, -10.0f, 10.0f, "%.3f", ImGuiSliderFlags_AlwaysClamp);
+        ImGuiKnobs::Knob("##input_top", &input_level, -10.0f, 10.0f, 0.0f, "%.2f", ImGuiKnobVariant_WiperOnly, 0, ImGuiKnobFlags_NoTitle);
+        // ImGui::DragFloat("##input_top", &input_level, 0.001f, -10.0f, 10.0f, "%.3f", ImGuiSliderFlags_AlwaysClamp);
         ImGui::EndGroup();
         ImGui::EndTable();
       }
@@ -120,6 +143,7 @@ int main(int argc, char** argv) {
         auto demo = ui.AddView(pugltk::View::Parameter("Demo", 800, 600), []() {
           bool p_open = true;
           ImGui::ShowDemoWindow(&p_open);
+          ImPlot::ShowDemoWindow(&p_open);
           cout << p_open << endl;
           return p_open;
         });

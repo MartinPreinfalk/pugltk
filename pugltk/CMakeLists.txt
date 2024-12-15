@@ -139,10 +139,48 @@ target_sources(${PROJECT_NAME}
 
 target_include_directories(${PROJECT_NAME}
   PUBLIC
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/imgui/backends>  
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/imgui/backends>
 )
 
 endif()
+
+# implot
+target_sources(${PROJECT_NAME}
+  PRIVATE
+    ext/implot/implot_demo.cpp
+    ext/implot/implot_items.cpp
+    ext/implot/implot.cpp
+  PUBLIC
+    FILE_SET implot_headers
+    TYPE HEADERS
+    BASE_DIRS
+      ext/implot
+    FILES
+      ext/implot/implot.h
+)
+
+target_include_directories(${PROJECT_NAME}
+  PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/implot>
+)
+
+# imgui-knobs
+target_sources(${PROJECT_NAME}
+  PRIVATE
+    ext/imgui-knobs/imgui-knobs.cpp
+  PUBLIC
+    FILE_SET imgui_knobs
+    TYPE HEADERS
+    BASE_DIRS
+      ext/imgui-knobs
+    FILES
+      ext/imgui-knobs/imgui-knobs.h
+)
+
+target_include_directories(${PROJECT_NAME}
+  PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/imgui-knobs>
+)
 
 # pugltk
 target_sources(${PROJECT_NAME}
@@ -241,7 +279,9 @@ install(TARGETS ${PROJECT_NAME}
   FILE_SET pugl_platform_headers
   FILE_SET imgui_headers
   FILE_SET imgui_backends_headers
+  FILE_SET imgui_knobs
   FILE_SET pugltk_fonts
+  FILE_SET implot_headers
   FILE_SET HEADERS
   LIBRARY DESTINATION lib
   ARCHIVE DESTINATION lib
