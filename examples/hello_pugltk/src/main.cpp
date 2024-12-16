@@ -2,6 +2,7 @@
 #include <iostream>
 
 #include "pugltk/Ui.h"
+#include "imgui-meter/imgui-meter.h"
 
 using namespace std;
 using namespace std::chrono_literals;
@@ -17,17 +18,23 @@ int main(int argc, char** argv) {
     ui.Init(::pugl::WorldType::program);
     cout << "init view...\n";
     auto main_view = ui.AddView(pugltk::View::Parameter("Hello ImGui Pugl UI", 800, 600), [&foo, &create_view](::pugltk::View const& /*view*/) {
-      ImGui::SetWindowFontScale(1.0);
-      if (ImGui::Button("foo++")) {
-        foo++;
+      bool p_open = true;
+      ImGui::ShowDemoWindow(&p_open);
+      ImPlot::ShowDemoWindow(&p_open);
+      ImGuiMeter::ShowDemoWindow(&p_open);
+      if (ImGui::Begin("pugltk-demo", &p_open)) {
+        if (ImGui::Button("foo++")) {
+          foo++;
+        }
+        if (ImGui::Button("create view")) {
+          create_view = true;
+        }
+        if (ImGui::Button("Close")) {
+          return false;
+        }
+        ImGui::End();
       }
-      if (ImGui::Button("create view")) {
-        create_view = true;
-      }
-      if (ImGui::Button("Close")) {
-        return false;
-      }
-      return true;
+      return p_open;
     });
     double r = 0, g = 0, b = 0;
     main_view->SetOpenGlFrameFunction([&r, &g, &b](::pugltk::View const& /*view*/) {
