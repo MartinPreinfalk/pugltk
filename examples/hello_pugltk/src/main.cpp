@@ -2,6 +2,7 @@
 #include <iostream>
 
 #include "pugltk/Ui.h"
+#include "imgui-knobs.h"
 #include "imgui-meter/imgui-meter.h"
 
 using namespace std;
@@ -21,6 +22,7 @@ int main(int argc, char** argv) {
       bool p_open = true;
       ImGui::ShowDemoWindow(&p_open);
       ImPlot::ShowDemoWindow(&p_open);
+      ImGuiKnobs::ShowDemoWindow(&p_open);
       ImGuiMeter::ShowDemoWindow(&p_open);
       if (ImGui::Begin("pugltk-demo", &p_open)) {
         if (ImGui::Button("foo++")) {
