@@ -11,7 +11,7 @@ namespace pugltk::fonts {
 #include "pugltk/fonts/roboto_medium_ttf.h"
 #endif
 
-constexpr size_t kDefaultFontSize = 20;
+constexpr size_t kDefaultFontSize = 12;
 
 enum class FontId {
   kDefault,
