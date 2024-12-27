@@ -168,7 +168,6 @@ target_include_directories(${PROJECT_NAME}
 target_sources(${PROJECT_NAME}
   PRIVATE
     ext/imgui-knobs/imgui-knobs.cpp
-    ext/imgui-knobs/imgui-knobs-demo.cpp
   PUBLIC
     FILE_SET imgui_knobs
     TYPE HEADERS

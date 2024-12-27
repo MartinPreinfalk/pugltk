@@ -8,6 +8,10 @@
 using namespace std;
 using namespace std::chrono_literals;
 
+namespace ImGuiKnobs {
+    void ShowDemoWindow(bool *p_open);
+}// namespace ImGuiKnobs
+
 int main(int argc, char** argv) {
   try {
     int foo = 42;
