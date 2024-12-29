@@ -74,35 +74,35 @@ void ShowDemoWindow(bool *p_open) {
     if (ImGui::CollapsingHeader("Logarithmic")) {
       static float val7 = 0;
       if (ImGuiKnobs::Knob("f#0", &val7, 20, 20000, 20.0f, "%.1fHz", ImGuiKnobVariant_WiperOnly, 0,
-                           ImGuiKnobFlags_Logarithmic)) {
+                           ImGuiKnobFlags_Logarithmic | ImGuiKnobFlags_AlwaysClamp)) {
         // value was changed
       }
 
       ImGui::SameLine();
       static float val8 = 0;
       if (ImGuiKnobs::Knob("f#1", &val8, 0, 20000, 20.0f, "%.1fHz", ImGuiKnobVariant_WiperOnly, 0,
-                           ImGuiKnobFlags_Logarithmic)) {
+                           ImGuiKnobFlags_Logarithmic | ImGuiKnobFlags_AlwaysClamp)) {
         // value was changed
       }
 
       ImGui::SameLine();
       static float val9 = 0;
       if (ImGuiKnobs::Knob("f#2", &val9, -20000, 20000, 20.0f, "%.1fHz", ImGuiKnobVariant_WiperOnly, 0,
-                           ImGuiKnobFlags_Logarithmic)) {
+                           ImGuiKnobFlags_Logarithmic | ImGuiKnobFlags_AlwaysClamp)) {
         // value was changed
       }
 
       ImGui::SameLine();
       static float val10 = 0;
       if (ImGuiKnobs::Knob("f#3", &val10, -20000, -20, 20.0f, "%.1fHz", ImGuiKnobVariant_WiperOnly, 0,
-                           ImGuiKnobFlags_Logarithmic)) {
+                           ImGuiKnobFlags_Logarithmic | ImGuiKnobFlags_AlwaysClamp)) {
         // value was changed
       }
 
       ImGui::SameLine();
       static float val11 = 0;
       if (ImGuiKnobs::Knob("f#4", &val11, 0, 0, 0, "%.1fHz", ImGuiKnobVariant_WiperOnly, 0,
-                           ImGuiKnobFlags_Logarithmic)) {
+                           ImGuiKnobFlags_Logarithmic | ImGuiKnobFlags_AlwaysClamp)) {
         // value was changed
       }
     }
