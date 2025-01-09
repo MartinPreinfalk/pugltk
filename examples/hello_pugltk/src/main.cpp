@@ -38,8 +38,8 @@ int main(int argc, char** argv) {
         if (ImGui::Button("Close")) {
           return false;
         }
-        ImGui::End();
       }
+      ImGui::End();
       return p_open;
     });
     double r = 0, g = 0, b = 0;
