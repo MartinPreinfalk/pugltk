@@ -10,3 +10,6 @@
 [submodule "pugltk/ext/imgui-knobs"]
 	path = pugltk/ext/imgui-knobs
 	url = https://github.com/MartinPreinfalk/imgui-knobs.git
+[submodule "pugltk/ext/ImGuiFileDialog"]
+	path = pugltk/ext/ImGuiFileDialog
+	url = https://github.com/MartinPreinfalk/ImGuiFileDialog.git

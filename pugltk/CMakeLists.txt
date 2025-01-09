@@ -38,7 +38,7 @@ target_sources(${PROJECT_NAME}
     ext/pugl/src/common.c
     ext/pugl/src/internal.c
   PUBLIC
-    FILE_SET pugl_headers 
+    FILE_SET pugl_headers
     TYPE HEADERS
     BASE_DIRS
       ext/pugl/include
@@ -46,7 +46,7 @@ target_sources(${PROJECT_NAME}
       ext/pugl/include/pugl/pugl.h
       ext/pugl/include/pugl/attributes.h
   PUBLIC
-    FILE_SET pugl_cpp_headers 
+    FILE_SET pugl_cpp_headers
     TYPE HEADERS
     BASE_DIRS
       ext/pugl/bindings/cpp/include
@@ -57,7 +57,7 @@ target_sources(${PROJECT_NAME}
 target_include_directories(${PROJECT_NAME}
   PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/pugl/include> 
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/pugl/bindings/cpp/include> 
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/pugl/bindings/cpp/include>
   PRIVATE
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/pugl/src> 
 )
@@ -117,6 +117,23 @@ target_sources(${PROJECT_NAME}
 target_include_directories(${PROJECT_NAME}
   PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/imgui>  
+)
+
+target_sources(${PROJECT_NAME}
+  PRIVATE
+    ext/imgui/misc/cpp/imgui_stdlib.cpp
+  PUBLIC
+    FILE_SET imgui_cpp_headers
+    TYPE HEADERS
+    BASE_DIRS
+      ext/imgui/misc/cpp
+    FILES
+      ext/imgui/misc/cpp/imgui_stdlib.h
+)
+
+target_include_directories(${PROJECT_NAME}
+  PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/imgui/misc/cpp>
 )
 
 if(IMGUI_PUGL_OPENGL3_BACKEND)
@@ -199,6 +216,24 @@ target_sources(${PROJECT_NAME}
 target_include_directories(${PROJECT_NAME}
   PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/imgui-meter>
+)
+
+# ImGuiFileDialog
+target_sources(${PROJECT_NAME}
+  PRIVATE
+    ext/ImGuiFileDialog/ImGuiFileDialog.cpp
+  PUBLIC
+    FILE_SET imgui_file_dialog
+    TYPE HEADERS
+    BASE_DIRS
+      ext/ImGuiFileDialog/
+    FILES
+      ext/ImGuiFileDialog/ImGuiFileDialog.h
+)
+
+target_include_directories(${PROJECT_NAME}
+  PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/ImGuiFileDialog>
 )
 
 # pugltk
@@ -297,11 +332,13 @@ install(TARGETS ${PROJECT_NAME}
   FILE_SET pugl_cpp_headers
   FILE_SET pugl_platform_headers
   FILE_SET imgui_headers
+  FILE_SET imgui_cpp_headers
   FILE_SET imgui_backends_headers
   FILE_SET imgui_knobs
   FILE_SET pugltk_fonts
   FILE_SET implot_headers
   FILE_SET imgui_meter
+  FILE_SET imgui_file_dialog
   FILE_SET HEADERS
   LIBRARY DESTINATION lib
   ARCHIVE DESTINATION lib
