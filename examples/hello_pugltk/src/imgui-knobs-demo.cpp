@@ -106,8 +106,8 @@ void ShowDemoWindow(bool *p_open) {
         // value was changed
       }
     }
-    ImGui::End();
   }
+  ImGui::End();
 }
 
 }  // namespace ImGuiKnobs
