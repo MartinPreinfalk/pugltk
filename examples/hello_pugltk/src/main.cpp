@@ -1,9 +1,11 @@
 
 #include <iostream>
 
+#include "imgui.h"
 #include "pugltk/Ui.h"
 #include "imgui-knobs.h"
 #include "imgui-meter/imgui-meter.h"
+#include "ImGuiFileDialog.h"
 
 using namespace std;
 using namespace std::chrono_literals;
@@ -11,6 +13,29 @@ using namespace std::chrono_literals;
 namespace ImGuiKnobs {
     void ShowDemoWindow(bool *p_open);
 }// namespace ImGuiKnobs
+
+static void ShowDemoFileDialog(bool* p_open) {
+  if (ImGui::Begin("ImGuiFileDialog", p_open)) {
+    // open Dialog Simple
+    if (ImGui::Button("Open File Dialog")) {
+      IGFD::FileDialogConfig config;
+      config.path = ".";
+      ImGuiFileDialog::Instance()->OpenDialog("ChooseFileDlgKey", "Choose File", ".cpp,.h,.hpp", config);
+    }
+    // display
+    if (ImGuiFileDialog::Instance()->Display("ChooseFileDlgKey")) {
+      if (ImGuiFileDialog::Instance()->IsOk()) {  // action if OK
+        std::string filePathName = ImGuiFileDialog::Instance()->GetFilePathName();
+        std::string filePath = ImGuiFileDialog::Instance()->GetCurrentPath();
+        // action
+      }
+
+      // close
+      ImGuiFileDialog::Instance()->Close();
+    }
+  }
+  ImGui::End();
+}
 
 int main(int argc, char** argv) {
   try {
@@ -28,6 +53,7 @@ int main(int argc, char** argv) {
       ImPlot::ShowDemoWindow(&p_open);
       ImGuiKnobs::ShowDemoWindow(&p_open);
       ImGuiMeter::ShowDemoWindow(&p_open);
+      ShowDemoFileDialog(&p_open);
       if (ImGui::Begin("pugltk-demo", &p_open)) {
         if (ImGui::Button("foo++")) {
           foo++;

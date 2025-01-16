@@ -36,3 +36,5 @@ build-release/*
 /ext/glad/build/*
 /ext/pugl/build/*
 /ext/imgui/build/*
+.cache/*
+.vscode/*
