@@ -44,7 +44,7 @@ View::View(::pugl::World& world, ViewId const& view_id) : ::pugl::View{world}, v
     SetImGuiFrameFunction(imgui_frame_function);
   }
   if (parameter_.parent != ::pugl::NativeView{}) {
-    setParentWindow(parameter_.parent);
+    setParent(parameter_.parent);
   }
   return realize();  // realizes view
 }
