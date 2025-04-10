@@ -35,6 +35,6 @@ bool AudioLevelMeter(const char *label, double const *data, size_t data_size, Im
                      ColorMapEntry<double> const *color_map = nullptr, size_t color_map_size = 0,
                      MapFunction<double> map_func = nullptr);
 
-void ShowDemoWindow(bool *p_open = NULL);  // create Demo window.
+void ShowDemoWindow(bool *p_open = nullptr);  // create Demo window.
 
 }  // namespace ImGuiMeter

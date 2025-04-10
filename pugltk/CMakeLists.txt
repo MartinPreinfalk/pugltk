@@ -218,6 +218,25 @@ target_include_directories(${PROJECT_NAME}
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/imgui-meter>
 )
 
+# imgui-utils
+target_sources(${PROJECT_NAME}
+  PRIVATE
+    ext/imgui-utils/src/imgui-utils.cpp
+    ext/imgui-utils/src/imgui-utils-demo.cpp
+  PUBLIC
+    FILE_SET imgui_utils
+    TYPE HEADERS
+    BASE_DIRS
+      ext/imgui-utils/include
+    FILES
+      ext/imgui-utils/include/imgui-utils/imgui-utils.h
+)
+
+target_include_directories(${PROJECT_NAME}
+  PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/imgui-utils>
+)
+
 # ImGuiFileDialog
 target_sources(${PROJECT_NAME}
   PRIVATE
@@ -338,6 +357,7 @@ install(TARGETS ${PROJECT_NAME}
   FILE_SET pugltk_fonts
   FILE_SET implot_headers
   FILE_SET imgui_meter
+  FILE_SET imgui_utils
   FILE_SET imgui_file_dialog
   FILE_SET HEADERS
   LIBRARY DESTINATION lib
