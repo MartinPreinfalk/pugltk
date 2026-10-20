@@ -218,6 +218,25 @@ target_include_directories(${PROJECT_NAME}
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/imgui-meter>
 )
 
+# imgui-pianoroll
+target_sources(${PROJECT_NAME}
+  PRIVATE
+    ext/imgui-pianoroll/src/imgui-pianoroll.cpp
+    ext/imgui-pianoroll/src/imgui-pianoroll-demo.cpp
+  PUBLIC
+    FILE_SET imgui_pianoroll
+    TYPE HEADERS
+    BASE_DIRS
+      ext/imgui-pianoroll/include
+    FILES
+      ext/imgui-pianoroll/include/imgui-pianoroll/imgui-pianoroll.h
+)
+
+target_include_directories(${PROJECT_NAME}
+  PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/imgui-pianoroll>
+)
+
 # imgui-utils
 target_sources(${PROJECT_NAME}
   PRIVATE
@@ -357,6 +376,7 @@ install(TARGETS ${PROJECT_NAME}
   FILE_SET pugltk_fonts
   FILE_SET implot_headers
   FILE_SET imgui_meter
+  FILE_SET imgui_pianoroll
   FILE_SET imgui_utils
   FILE_SET imgui_file_dialog
   FILE_SET HEADERS

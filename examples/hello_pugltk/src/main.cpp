@@ -5,6 +5,7 @@
 #include "pugltk/Ui.h"
 #include "imgui-knobs.h"
 #include "imgui-meter/imgui-meter.h"
+#include "imgui-pianoroll/imgui-pianoroll.h"
 #include "imgui-utils/imgui-utils.h"
 #include "ImGuiFileDialog.h"
 
@@ -54,6 +55,7 @@ int main(int argc, char** argv) {
       ImPlot::ShowDemoWindow(&p_open);
       ImGuiKnobs::ShowDemoWindow(&p_open);
       ImGuiMeter::ShowDemoWindow(&p_open);
+      ImGui::ShowPianoRollDemoApp();
       ImGuiUtils::ShowDemoWindow(&p_open);
       ShowDemoFileDialog(&p_open);
       if (ImGui::Begin("pugltk-demo", &p_open)) {

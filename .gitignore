@@ -38,3 +38,4 @@ build-release/*
 /ext/imgui/build/*
 .cache/*
 .vscode/*
+/build-example/*
