@@ -21,6 +21,9 @@ typedef int PianoRollInteraction;
 // Interner Bearbeitungsmodus
 enum class PianoRollEditMode { None, Moving, Resizing, Velocity };
 
+enum class PianoRollKeyboardEventType { NoteOn, NoteOff };
+using PianoRollKeyboardEventCallback = std::function<void(PianoRollKeyboardEventType, int pitch)>;
+
 // Kapselt den vollständigen UI-Zustand eines Piano Rolls
 struct PianoRollState {
   ImVec2 scrollVal = ImVec2(0.0f, 1000.0f);  // Startet vertikal leicht mittig
@@ -46,6 +49,7 @@ struct PianoRollState {
   double dragStartDuration = 0.0;
   ImVec2 mouseClick = ImVec2(0.0f, 0.0f);
   ImVec2 mouseClickOffset = ImVec2(0.0f, 0.0f);
+  int keyboardActivePitch = -1;
 
   static PianoRollState CreateDefaultMelodic() {
     PianoRollState state;
@@ -85,8 +89,10 @@ void FitPianoRollToContent(PianoRollState& state, int minPitch, int maxPitch, do
                            const ImVec2& canvasSize, float contentPadding = 48.0f);
 
 // Startet den Canvas
+// The optional callback receives overlay-key NoteOn/NoteOff events as (type, MIDI pitch, velocity).
 bool BeginPianoRoll(const char* str_id, PianoRollState& state, const ImVec2& size = ImVec2(0, 0),
-                    PianoRollControl flags = PianoRollControl_DefaultFlags);
+                    PianoRollControl flags = PianoRollControl_DefaultFlags,
+                    PianoRollKeyboardEventCallback keyboardEventCallback = nullptr);
 
 // Erstellt eine neue Note per Single-Click / Touch (inklusive Drag zum Aufziehen)
 bool PianoRollCreateNote(PianoRollState& state, double* outBeat, int* outPitch, int* outVelocity, double* outDuration);

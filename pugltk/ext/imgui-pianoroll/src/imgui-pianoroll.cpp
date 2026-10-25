@@ -83,7 +83,8 @@ static void HandleCanvasInput(PianoRollState& state, ImVec2 canvas_size) {
       }
     }
 
-    if (state.editMode == PianoRollEditMode::None && ImGui::IsMouseDragging(ImGuiMouseButton_Left)) {
+    if (state.editMode == PianoRollEditMode::None && state.keyboardActivePitch == -1 &&
+        ImGui::IsMouseDragging(ImGuiMouseButton_Left)) {
       state.scrollVal.x -= io.MouseDelta.x;
       state.scrollVal.y -= io.MouseDelta.y;
     }
@@ -162,6 +163,28 @@ static void DrawPianoKeysOverlay(ImDrawList* draw_list, ImVec2 canvas_pos, ImVec
   draw_list->PopClipRect();
 }
 
+static void HandlePianoKeyboardInput(PianoRollState& state, PianoRollKeyboardEventCallback const& callback) {
+  ImGuiIO& io = ImGui::GetIO();
+  ImVec2 const localMouse(io.MousePos.x - g_PRCtx.CanvasPos.x, io.MousePos.y - g_PRCtx.CanvasPos.y);
+  bool const overKeyboard = g_PRCtx.IsCanvasHovered && localMouse.x >= 0.0f &&
+                            localMouse.x < PIANO_KEY_OVERLAY_WIDTH && localMouse.y >= 0.0f &&
+                            localMouse.y < g_PRCtx.CanvasSize.y;
+
+  if (overKeyboard && ImGui::IsMouseClicked(ImGuiMouseButton_Left) && state.keyboardActivePitch == -1) {
+    state.keyboardActivePitch = ImClamp(CanvasYToPitch(localMouse.y, state.noteHeight, state.scrollVal.y), 0, 127);
+    if (callback) {
+      callback(PianoRollKeyboardEventType::NoteOn, state.keyboardActivePitch);
+    }
+  }
+
+  if (state.keyboardActivePitch != -1 && ImGui::IsMouseReleased(ImGuiMouseButton_Left)) {
+    if (callback) {
+      callback(PianoRollKeyboardEventType::NoteOff, state.keyboardActivePitch);
+    }
+    state.keyboardActivePitch = -1;
+  }
+}
+
 namespace ImGui {
 
 void FitPianoRollVertical(PianoRollState& state, int minPitch, int maxPitch, const ImVec2& canvasSize,
@@ -235,7 +258,8 @@ void FitPianoRollToContent(PianoRollState& state, int minPitch, int maxPitch, do
   FitPianoRollHorizontal(state, totalBeats, canvasSize, contentPadding);
 }
 
-bool BeginPianoRoll(const char* str_id, PianoRollState& state, const ImVec2& size, PianoRollControl flags) {
+bool BeginPianoRoll(const char* str_id, PianoRollState& state, const ImVec2& size, PianoRollControl flags,
+                    PianoRollKeyboardEventCallback keyboardEventCallback) {
   PushID(str_id);
 
   BeginChild("PianoRollCanvas", size, true, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoMove);
@@ -297,6 +321,7 @@ bool BeginPianoRoll(const char* str_id, PianoRollState& state, const ImVec2& siz
   g_PRCtx.IsCanvasHovered = IsWindowHovered();
 
   HandleCanvasInput(state, g_PRCtx.CanvasSize);
+  HandlePianoKeyboardInput(state, keyboardEventCallback);
   DrawGrid(g_PRCtx.DrawList, g_PRCtx.CanvasPos, g_PRCtx.CanvasSize, state);
 
   g_PRCtx.DrawList->PushClipRect(
