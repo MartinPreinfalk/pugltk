@@ -18,6 +18,7 @@ struct PianoRollContext {
 
 static PianoRollContext g_PRCtx;
 static constexpr float PIANO_KEY_OVERLAY_WIDTH = 40.0f;
+static constexpr float MIN_SCROLL_X = -2.0f * PIANO_KEY_OVERLAY_WIDTH;
 
 // --- Hilfsfunktionen für Koordinatenumrechnung ---
 static float BeatToCanvasX(double beat, float pixelsPerBeat, float scrollX) {
@@ -90,7 +91,7 @@ static void HandleCanvasInput(PianoRollState& state, ImVec2 canvas_size) {
     }
   }
 
-  state.scrollVal.x = ImMax(-1.25f * PIANO_KEY_OVERLAY_WIDTH, state.scrollVal.x);
+  state.scrollVal.x = ImMax(MIN_SCROLL_X, state.scrollVal.x);
   float maxScrollY = (128.0f * state.noteHeight) - canvas_size.y;
   state.scrollVal.y = ImClamp(state.scrollVal.y, 0.0f, ImMax(0.0f, maxScrollY));
 }
@@ -219,11 +220,11 @@ void FitPianoRollHorizontal(PianoRollState& state, double totalBeats, const ImVe
     return;
   }
 
-  constexpr float kHorizontalZoomOutFactor = 1.2f;
-  auto const visibleWidth = std::max(1.0f, canvasSize.x - contentPadding);
+  constexpr float kHorizontalZoomOutFactor = 1.1f;
+  auto const visibleWidth = std::max(1.0f, canvasSize.x - contentPadding) + MIN_SCROLL_X; // MIN_SCROLL_X is negative
   auto const durationBeats = std::max(1.0, totalBeats * kHorizontalZoomOutFactor);
-  state.pixelsPerBeat = std::clamp(visibleWidth / static_cast<float>(durationBeats), 20.0f, 220.0f);
-  state.scrollVal.x = 0.0f;
+  state.pixelsPerBeat = std::clamp(visibleWidth / static_cast<float>(durationBeats), 20.0f, 800.0f);
+  state.scrollVal.x = MIN_SCROLL_X;
 }
 
 void FitPianoRollFullLength(PianoRollState& state, double fullLengthBeats, const ImVec2& canvasSize,
@@ -232,10 +233,11 @@ void FitPianoRollFullLength(PianoRollState& state, double fullLengthBeats, const
     return;
   }
 
-  auto const visibleWidth = std::max(1.0f, canvasSize.x - contentPadding);
-  auto const durationBeats = std::max(1.0, fullLengthBeats);
-  state.pixelsPerBeat = std::clamp(visibleWidth / static_cast<float>(durationBeats), 20.0f, 220.0f);
-  state.scrollVal.x = 0.0f;
+  constexpr float kHorizontalZoomOutFactor = 1.1f;
+  auto const visibleWidth = std::max(1.0f, canvasSize.x - contentPadding) + MIN_SCROLL_X; // MIN_SCROLL_X is negative
+  auto const durationBeats = std::max(1.0, fullLengthBeats * kHorizontalZoomOutFactor);
+  state.pixelsPerBeat = std::clamp(visibleWidth / static_cast<float>(durationBeats), 20.0f, 800.0f);
+  state.scrollVal.x = MIN_SCROLL_X;
 }
 
 void FitPianoRollToContent(PianoRollState& state, int minPitch, int maxPitch, double totalBeats,
