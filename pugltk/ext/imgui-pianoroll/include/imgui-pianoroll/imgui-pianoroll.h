@@ -1,7 +1,9 @@
 #pragma once
 
 #include <cstdint>
+#include <chrono>
 #include <functional>
+#include <optional>
 
 #include "imgui.h"
 
@@ -26,6 +28,7 @@ enum class PianoRollEditMode { None, Moving, Resizing, Velocity };
 
 enum class PianoRollKeyboardEventType { NoteOn, NoteOff };
 using PianoRollKeyboardEventCallback = std::function<void(PianoRollKeyboardEventType, int pitch)>;
+using PianoRollVelocityCommitCallback = std::function<void(uint32_t note_id, int velocity)>;
 
 // Kapselt den vollständigen UI-Zustand eines Piano Rolls
 struct PianoRollState {
@@ -36,6 +39,20 @@ struct PianoRollState {
   int beats_per_bar = 4;
   bool snap_to_grid = true;
   bool percussive_notes = false;
+  bool show_velocity_editor = false;
+  std::optional<int> velocity_filter_key;
+  // Invoked once per debounced edit; the client applies or sends the change.
+  PianoRollVelocityCommitCallback velocity_commit;
+
+  struct PendingVelocity {
+    uint32_t note_id;
+    int original_velocity;
+    int velocity;
+    std::chrono::steady_clock::time_point last_update;
+  };
+  std::optional<PendingVelocity> pending_velocity;
+  bool velocity_dragging = false;
+  bool velocity_rendered = false;
 
   // Fit-Zielwerte für die eingebetteten Zoom-Buttons.
   int fitMinPitch = 48;
@@ -74,6 +91,7 @@ enum PianoRollControlFlags_ {
   PianoRollControl_ShowBeatsPerBarSetting = 1 << 2,
   PianoRollControl_ShowSubBeatGridSetting = 1 << 3,
   PianoRollControl_ShowFitControls = 1 << 4,
+  PianoRollControl_ShowVelocityEditorSwitch = 1 << 5,  // Requires velocity_commit and an ImPlot context.
 };
 typedef int PianoRollControl;
 
@@ -82,6 +100,18 @@ static auto constexpr PianoRollControl_DefaultFlags =
     PianoRollControl_ShowBeatsPerBarSetting | PianoRollControl_ShowSubBeatGridSetting;
 
 namespace ImGui {
+// A callback enables debounced edits; without one PianoRollNote retains immediate pointer updates.
+// Call UpdatePianoRollVelocity once per frame, even when hidden, and force-flush before closing.
+// Cancel pending edits when note IDs are removed, reused, or remapped.
+void UpdatePianoRollVelocity(PianoRollState& state);
+bool FlushPianoRollVelocity(PianoRollState& state, bool force = false,
+                            std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now());
+void CancelPianoRollVelocity(PianoRollState& state);
+void QueuePianoRollVelocity(PianoRollState& state, uint32_t note_id, int original_velocity, int velocity,
+                            std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now());
+int PianoRollDisplayedVelocity(PianoRollState const& state, uint32_t note_id, int velocity);
+// Optional named filter options; call between BeginPianoRoll and EndPianoRoll.
+void PianoRollVelocityKey(int key_id, const char* label);
 void FitPianoRollVertical(PianoRollState& state, int minPitch, int maxPitch, const ImVec2& canvasSize,
                          float contentPadding = 48.0f);
 void FitPianoRollHorizontal(PianoRollState& state, double totalBeats, const ImVec2& canvasSize,
@@ -107,9 +137,11 @@ inline ImU32 constexpr PianoRollDefaultNoteColor(bool active, bool hovered_defau
   return IM_COL32(87 + velocity, 215 - velocity, 87, 255);
 }
 
-// Rendert eine Note und verarbeitet Interaktionen direkt über Zeiger
+// With a commit callback, velocity is previewed internally and only the callback commits it.
+// velocity_key groups notes for filtering and colors; -1 uses the note's pitch.
 PianoRollInteraction PianoRollNote(PianoRollState& state, uint32_t id, double* beat, int* pitch, int* velocity,
-                                   double* duration, std::function<ImU32(bool, bool, bool, int)> f_color = nullptr);
+                                   double* duration, std::function<ImU32(bool, bool, bool, int)> f_color = nullptr,
+                                   int velocity_key = -1);
 
 // Schließt den Canvas und zeichnet Overlays
 void EndPianoRoll(PianoRollState& state);

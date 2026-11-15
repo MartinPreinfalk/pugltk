@@ -4,16 +4,29 @@
 #include <cmath>
 #include <cstdio>
 #include <string>
+#include <utility>
+#include <vector>
 
 #include "imgui.h"
 #include "imgui_internal.h"
+#include "implot.h"
 
 // Interner Kontext für den aktuellen Frame
+struct PianoRollVelocityNote {
+  uint32_t id;
+  int key;
+  double beat;
+  int original_velocity;
+};
+
 struct PianoRollContext {
   ImVec2 CanvasPos;
   ImVec2 CanvasSize;
   ImDrawList* DrawList = nullptr;
   bool IsCanvasHovered = false;
+  bool VelocityPane = false;
+  std::vector<PianoRollVelocityNote> Notes;
+  std::vector<std::pair<int, std::string>> Keys;
 };
 
 static PianoRollContext g_PRCtx;
@@ -187,6 +200,52 @@ static void HandlePianoKeyboardInput(PianoRollState& state, PianoRollKeyboardEve
 
 namespace ImGui {
 
+void UpdatePianoRollVelocity(PianoRollState& state) {
+  if (!state.velocity_rendered) state.velocity_dragging = false;
+  FlushPianoRollVelocity(state);
+  state.velocity_rendered = false;
+}
+
+bool FlushPianoRollVelocity(PianoRollState& state, bool force, std::chrono::steady_clock::time_point now) {
+  if (!state.pending_velocity || (!force && (state.velocity_dragging ||
+      now - state.pending_velocity->last_update < std::chrono::milliseconds(200)))) {
+    return false;
+  }
+  auto const change = *state.pending_velocity;
+  state.pending_velocity.reset();
+  if (change.velocity == change.original_velocity) return false;
+  IM_ASSERT(state.velocity_commit && "Piano roll velocity edits require a commit callback");
+  if (!state.velocity_commit) return false;
+  state.velocity_commit(change.note_id, change.velocity);
+  return true;
+}
+
+void CancelPianoRollVelocity(PianoRollState& state) {
+  state.pending_velocity.reset();
+  state.velocity_dragging = false;
+}
+
+void QueuePianoRollVelocity(PianoRollState& state, uint32_t note_id, int original_velocity, int velocity,
+                            std::chrono::steady_clock::time_point now) {
+  IM_ASSERT(state.velocity_commit && "Piano roll velocity edits require a commit callback");
+  if (!state.velocity_commit) return;
+  if (state.pending_velocity && state.pending_velocity->note_id != note_id) {
+    FlushPianoRollVelocity(state, true, now);
+  }
+  if (state.pending_velocity) original_velocity = state.pending_velocity->original_velocity;
+  state.pending_velocity = PianoRollState::PendingVelocity{note_id, original_velocity,
+                                                             std::clamp(velocity, 0, 127), now};
+}
+
+int PianoRollDisplayedVelocity(PianoRollState const& state, uint32_t note_id, int velocity) {
+  return state.pending_velocity && state.pending_velocity->note_id == note_id ? state.pending_velocity->velocity
+                                                                             : velocity;
+}
+
+void PianoRollVelocityKey(int key_id, const char* label) {
+  g_PRCtx.Keys.emplace_back(key_id, label);
+}
+
 void FitPianoRollVertical(PianoRollState& state, int minPitch, int maxPitch, const ImVec2& canvasSize,
                          float contentPadding) {
   (void)contentPadding;
@@ -261,6 +320,12 @@ void FitPianoRollToContent(PianoRollState& state, int minPitch, int maxPitch, do
 
 bool BeginPianoRoll(const char* str_id, PianoRollState& state, const ImVec2& size, PianoRollControl flags,
                     PianoRollKeyboardEventCallback keyboardEventCallback) {
+  FlushPianoRollVelocity(state);
+  state.velocity_dragging = false;
+  state.velocity_rendered = true;
+  g_PRCtx.Notes.clear();
+  g_PRCtx.Keys.clear();
+  g_PRCtx.VelocityPane = false;
   PushID(str_id);
 
   BeginChild("PianoRollCanvas", size, true, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoMove);
@@ -271,7 +336,13 @@ bool BeginPianoRoll(const char* str_id, PianoRollState& state, const ImVec2& siz
   bool const any_control_visible =
       (flags & PianoRollControl_ShowPercussiveSwitch) || (flags & PianoRollControl_ShowSnapToGridSwitch) ||
       (flags & PianoRollControl_ShowBeatsPerBarSetting) || (flags & PianoRollControl_ShowSubBeatGridSetting) ||
-      (flags & PianoRollControl_ShowFitControls);
+      (flags & PianoRollControl_ShowFitControls) || (flags & PianoRollControl_ShowVelocityEditorSwitch);
+
+  bool velocity_toggled = false;
+  if (flags & PianoRollControl_ShowVelocityEditorSwitch) {
+    velocity_toggled = ImGui::Checkbox("velocities", &state.show_velocity_editor);
+    ImGui::SameLine();
+  }
 
   if (flags & PianoRollControl_ShowPercussiveSwitch) {
     ImGui::Checkbox("percussive notes", &state.percussive_notes);
@@ -316,11 +387,21 @@ bool BeginPianoRoll(const char* str_id, PianoRollState& state, const ImVec2& siz
     ImGui::NewLine();
   }
 
+  g_PRCtx.VelocityPane = (flags & PianoRollControl_ShowVelocityEditorSwitch) && state.show_velocity_editor;
+  if (g_PRCtx.VelocityPane) {
+    IM_ASSERT(state.velocity_commit && "Velocity editor requires a commit callback");
+    float const half_height = std::max(1.0f, (GetContentRegionAvail().y - GetStyle().ItemSpacing.y) * 0.5f);
+    BeginChild("PianoRollNotes", ImVec2(0, half_height), true,
+               ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoMove);
+  }
   g_PRCtx.CanvasPos = GetCursorScreenPos();
   g_PRCtx.CanvasSize = GetContentRegionAvail();
   g_PRCtx.DrawList = GetWindowDrawList();
   g_PRCtx.IsCanvasHovered = IsWindowHovered();
 
+  if (velocity_toggled) {
+    FitPianoRollVertical(state, state.fitMinPitch, state.fitMaxPitch, g_PRCtx.CanvasSize);
+  }
   HandleCanvasInput(state, g_PRCtx.CanvasSize);
   HandlePianoKeyboardInput(state, keyboardEventCallback);
   DrawGrid(g_PRCtx.DrawList, g_PRCtx.CanvasPos, g_PRCtx.CanvasSize, state);
@@ -364,8 +445,15 @@ bool PianoRollCreateNote(PianoRollState& state, double* outBeat, int* outPitch, 
 }
 
 PianoRollInteraction PianoRollNote(PianoRollState& state, uint32_t id, double* beat, int* pitch, int* velocity,
-                                   double* duration, std::function<ImU32(bool, bool, bool, int)> f_color) {
+                                   double* duration, std::function<ImU32(bool, bool, bool, int)> f_color,
+                                   int velocity_key) {
   PianoRollInteraction resultFlags = PianoRollInteraction_None;
+  int const original_velocity = *velocity;
+  int preview_velocity = PianoRollDisplayedVelocity(state, id, *velocity);
+  if (state.velocity_commit) velocity = &preview_velocity;
+  if (g_PRCtx.VelocityPane) {
+    g_PRCtx.Notes.push_back({id, velocity_key < 0 ? *pitch : velocity_key, *beat, original_velocity});
+  }
   bool const& isPercussive = state.percussive_notes;
   ImGuiIO& io = ImGui::GetIO();
 
@@ -485,6 +573,12 @@ PianoRollInteraction PianoRollNote(PianoRollState& state, uint32_t id, double* b
     }
   }
 
+  if (state.velocity_commit && (resultFlags & PianoRollInteraction_VelocityChanged)) {
+    QueuePianoRollVelocity(state, id, original_velocity, *velocity);
+  }
+  if (state.velocity_commit && state.editMode == PianoRollEditMode::Velocity && state.activeNoteId == id) {
+    state.velocity_dragging = IsMouseDown(ImGuiMouseButton_Left);
+  }
   if (isActive || isHovered) {
     if (state.editMode == PianoRollEditMode::Resizing || isResizeZone) {
       SetMouseCursor(ImGuiMouseCursor_ResizeEW);
@@ -521,6 +615,102 @@ PianoRollInteraction PianoRollNote(PianoRollState& state, uint32_t id, double* b
   return resultFlags;
 }
 
+static void RenderPianoRollVelocities(PianoRollState& state) {
+  for (auto const& note : g_PRCtx.Notes) {
+    auto const found = std::find_if(g_PRCtx.Keys.begin(), g_PRCtx.Keys.end(),
+                                    [&](auto const& key) { return key.first == note.key; });
+    if (found == g_PRCtx.Keys.end()) {
+      g_PRCtx.Keys.emplace_back(note.key, "Key " + std::to_string(note.key));
+    }
+  }
+  auto selected = std::find_if(g_PRCtx.Keys.begin(), g_PRCtx.Keys.end(),
+                               [&](auto const& key) { return state.velocity_filter_key == key.first; });
+  if (state.velocity_filter_key && selected == g_PRCtx.Keys.end()) state.velocity_filter_key.reset();
+  BeginChild("PianoRollVelocities", ImVec2(0, 0), true, ImGuiWindowFlags_NoScrollbar);
+  SetNextItemWidth(250.0f);
+  if (BeginCombo("Key filter", state.velocity_filter_key ? selected->second.c_str() : "All keys")) {
+    if (Selectable("All keys", !state.velocity_filter_key)) state.velocity_filter_key.reset();
+    for (auto const& key : g_PRCtx.Keys) {
+      PushID(key.first);
+      if (Selectable(key.second.c_str(), state.velocity_filter_key == key.first)) state.velocity_filter_key = key.first;
+      PopID();
+    }
+    EndCombo();
+  }
+  SameLine();
+  TextUnformatted("Velocity (0-127)");
+
+  auto const plot_x = g_PRCtx.CanvasPos.x + PIANO_KEY_OVERLAY_WIDTH;
+  auto const plot_width = g_PRCtx.CanvasSize.x - PIANO_KEY_OVERLAY_WIDTH;
+  if (plot_width > 0) {
+    SetCursorScreenPos(ImVec2(plot_x, GetCursorScreenPos().y));
+    ImPlot::PushStyleVar(ImPlotStyleVar_PlotPadding, ImVec2(0, 0));
+    if (ImPlot::BeginPlot("##Velocities", ImVec2(plot_width, std::max(1.0f, GetContentRegionAvail().y)),
+                          ImPlotFlags_CanvasOnly | ImPlotFlags_NoInputs)) {
+      ImPlot::SetupAxis(ImAxis_X1, "Beat");
+      ImPlot::SetupAxis(ImAxis_Y1, nullptr, ImPlotAxisFlags_NoTickLabels | ImPlotAxisFlags_NoTickMarks);
+      ImPlot::SetupAxisLimits(ImAxis_X1, (PIANO_KEY_OVERLAY_WIDTH + state.scrollVal.x) / state.pixelsPerBeat,
+                              (g_PRCtx.CanvasSize.x + state.scrollVal.x) / state.pixelsPerBeat, ImPlotCond_Always);
+      ImPlot::SetupAxisLimits(ImAxis_Y1, -5, 132, ImPlotCond_Always);
+      ImPlot::SetupFinish();
+      for (int value : {0, 64, 127}) {
+        auto const pos = ImPlot::PlotToPixels(0.0, value);
+        auto const label = std::to_string(value);
+        GetWindowDrawList()->AddText(ImVec2(plot_x - CalcTextSize(label.c_str()).x - 5.0f,
+                                             pos.y - GetTextLineHeight() * 0.5f),
+                                     GetColorU32(ImGuiCol_Text), label.c_str());
+      }
+
+      auto& notes = g_PRCtx.Notes;
+      notes.erase(std::remove_if(notes.begin(), notes.end(), [&](auto const& note) {
+                    return state.velocity_filter_key && note.key != *state.velocity_filter_key;
+                  }), notes.end());
+      std::sort(notes.begin(), notes.end(), [](auto const& a, auto const& b) {
+        return a.beat != b.beat ? a.beat < b.beat : a.id < b.id;
+      });
+      size_t start = 0;
+      while (start < notes.size()) {
+        size_t end = start + 1;
+        while (end < notes.size() && notes[end].beat == notes[start].beat) ++end;
+        for (size_t i = start; i < end; ++i) {
+          auto const& note = notes[i];
+          // Separate simultaneous handles without changing the note's beat.
+          double x = note.beat + (static_cast<double>(i - start) - (end - start - 1) * 0.5) *
+                                      10.0 / state.pixelsPerBeat;
+          auto const x_pixel = g_PRCtx.CanvasPos.x + BeatToCanvasX(x, state.pixelsPerBeat, state.scrollVal.x);
+          if (x_pixel < plot_x - 4.0f || x_pixel > plot_x + plot_width + 4.0f) continue;
+          double y = PianoRollDisplayedVelocity(state, note.id, note.original_velocity);
+          float const hue = std::fmod(static_cast<float>(note.key) * 0.618034f, 1.0f);
+          ImVec4 color;
+          ColorConvertHSVtoRGB(hue, 0.65f, 0.9f, color.x, color.y, color.z);
+          color.w = 1.0f;
+          auto const label = "##velocity" + std::to_string(note.id);
+          ImPlot::SetNextFillStyle(color);
+          ImPlot::SetNextLineStyle(color);
+          ImPlot::PlotBars(label.c_str(), &x, &y, 1, 7.0 / state.pixelsPerBeat);
+          bool hovered = false, held = false;
+          if (ImPlot::DragPoint(static_cast<int>(note.id), &x, &y, color, 4.0f, ImPlotDragToolFlags_Delayed,
+                                nullptr, &hovered, &held)) {
+            QueuePianoRollVelocity(state, note.id, note.original_velocity,
+                                   static_cast<int>(std::lround(std::clamp(y, 0.0, 127.0))));
+          }
+          state.velocity_dragging |= held;
+          if (hovered || held) {
+            auto const key = std::find_if(g_PRCtx.Keys.begin(), g_PRCtx.Keys.end(),
+                                           [&](auto const& entry) { return entry.first == note.key; });
+            SetTooltip("%s\nBeat: %.3f\nVelocity: %d", key->second.c_str(), note.beat,
+                       PianoRollDisplayedVelocity(state, note.id, note.original_velocity));
+          }
+        }
+        start = end;
+      }
+      ImPlot::EndPlot();
+    }
+    ImPlot::PopStyleVar();
+  }
+  EndChild();
+}
+
 void EndPianoRoll(PianoRollState& state) {
   if (IsMouseReleased(ImGuiMouseButton_Left)) {
     state.editMode = PianoRollEditMode::None;
@@ -531,6 +721,10 @@ void EndPianoRoll(PianoRollState& state) {
 
   DrawPianoKeysOverlay(g_PRCtx.DrawList, g_PRCtx.CanvasPos, g_PRCtx.CanvasSize, state.noteHeight, state.scrollVal);
 
+  if (g_PRCtx.VelocityPane) {
+    EndChild();
+    RenderPianoRollVelocities(state);
+  }
   EndChild();
   PopID();
 }

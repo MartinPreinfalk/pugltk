@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <cstddef>
 #include <vector>
 
@@ -16,6 +17,11 @@ void ImGui::ShowPianoRollDemoApp() {
   static PianoRollState synthState = PianoRollState::CreateDefaultMelodic();
   static PianoRollState drumState = PianoRollState::CreateDefaultPercussive();
 
+  synthState.fitMinPitch = 48;
+  synthState.fitMaxPitch = 84;
+  drumState.fitMinPitch = 35;
+  drumState.fitMaxPitch = 45;
+
   static std::vector<CustomNote> synthNotes = {
       {1, 60, 100, 0.0, 1.0},
       {2, 64, 100, 1.0, 1.0},
@@ -31,19 +37,31 @@ void ImGui::ShowPianoRollDemoApp() {
 
   static uint32_t nextId = 1000;
 
+  synthState.velocity_commit = [](uint32_t id, int velocity) {
+    for (auto& note : synthNotes) if (note.id == id) note.velocity = velocity;
+  };
+  drumState.velocity_commit = [](uint32_t id, int velocity) {
+    for (auto& note : drumNotes) if (note.id == id) note.velocity = velocity;
+  };
+  ImGui::UpdatePianoRollVelocity(synthState);
+  ImGui::UpdatePianoRollVelocity(drumState);
+
   ImGui::SetNextWindowSize(ImVec2(1000, 600), ImGuiCond_FirstUseEver);
   if (ImGui::Begin("MIDI Editor Demo")) {
-    if (ImGui::Button("Fit Synth to Content")) {
-      ImGui::FitPianoRollToContent(synthState, 48, 84, 16.0, ImGui::GetContentRegionAvail());
-    }
+    bool const fitSynth = ImGui::Button("Fit Synth to Content");
     ImGui::SameLine();
-    if (ImGui::Button("Fit Drums to Content")) {
-      ImGui::FitPianoRollToContent(drumState, 35, 45, 8.0, ImGui::GetContentRegionAvail());
-    }
+    bool const fitDrums = ImGui::Button("Fit Drums to Content");
     ImGui::Separator();
 
     ImGui::Text("Synthesizer Track (Links-Klick = Erstellen/Ziehen, Rechts-Klick = Mute/Unmute)");
-    if (ImGui::BeginPianoRoll("SynthEditor", synthState, ImVec2(0, 250))) {
+    // Reserve the separator, drum label, and spacing before splitting the remaining height.
+    float const overhead = ImGui::GetTextLineHeight() + 3.0f * ImGui::GetStyle().ItemSpacing.y;
+    float const editorHeight = std::max(1.0f, (ImGui::GetContentRegionAvail().y - overhead) * 0.5f);
+    if (ImGui::BeginPianoRoll("SynthEditor", synthState, ImVec2(0, editorHeight),
+                               PianoRollControl_DefaultFlags | PianoRollControl_ShowVelocityEditorSwitch)) {
+      if (fitSynth) {
+        ImGui::FitPianoRollToContent(synthState, 48, 84, 16.0, ImGui::GetContentRegionAvail());
+      }
       double newBeat = 0.0, newDuration = 0.0;
       int newPitch = 0, newVelocity = 0;
       if (ImGui::PianoRollCreateNote(synthState, &newBeat, &newPitch, &newVelocity, &newDuration)) {
@@ -70,7 +88,11 @@ void ImGui::ShowPianoRollDemoApp() {
     ImGui::Separator();
 
     ImGui::Text("Drum Track (Percussive Diamonds Mode)");
-    if (ImGui::BeginPianoRoll("DrumEditor", drumState, ImVec2(0, 250))) {
+    if (ImGui::BeginPianoRoll("DrumEditor", drumState, ImVec2(0, std::max(1.0f, ImGui::GetContentRegionAvail().y)),
+                               PianoRollControl_DefaultFlags | PianoRollControl_ShowVelocityEditorSwitch)) {
+      if (fitDrums) {
+        ImGui::FitPianoRollToContent(drumState, 35, 45, 8.0, ImGui::GetContentRegionAvail());
+      }
       double newBeat = 0.0, newDuration = 0.0;
       int newPitch = 0, newVelocity = 0;
       if (ImGui::PianoRollCreateNote(drumState, &newBeat, &newPitch, &newVelocity, &newDuration)) {
@@ -83,7 +105,6 @@ void ImGui::ShowPianoRollDemoApp() {
 
       ImGui::EndPianoRoll(drumState);
     }
-
-    ImGui::End();
   }
+  ImGui::End();
 }
