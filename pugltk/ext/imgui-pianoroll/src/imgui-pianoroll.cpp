@@ -17,7 +17,6 @@ struct PianoRollContext {
 };
 
 static PianoRollContext g_PRCtx;
-static constexpr float PIANO_KEY_OVERLAY_WIDTH = 40.0f;
 static constexpr float MIN_SCROLL_X = -2.0f * PIANO_KEY_OVERLAY_WIDTH;
 
 // --- Hilfsfunktionen für Koordinatenumrechnung ---

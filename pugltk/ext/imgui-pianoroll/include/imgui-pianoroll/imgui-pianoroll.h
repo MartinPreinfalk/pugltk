@@ -5,6 +5,9 @@
 
 #include "imgui.h"
 
+// Width of the piano keyboard overlay, in canvas pixels.
+inline constexpr float PIANO_KEY_OVERLAY_WIDTH = 40.0f;
+
 // Interaktions-Ergebnisse für einzelne Noten
 enum PianoRollInteractionFlags_ {
   PianoRollInteraction_None = 0,
