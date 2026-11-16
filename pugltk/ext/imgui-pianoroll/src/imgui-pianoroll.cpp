@@ -425,7 +425,7 @@ bool PianoRollCreateNote(PianoRollState& state, double* outBeat, int* outPitch, 
     double clickBeat = CanvasXToBeat(localMouse.x, state.pixelsPerBeat, state.scrollVal.x);
     int clickPitch = CanvasYToPitch(localMouse.y, state.noteHeight, state.scrollVal.y);
 
-    clickBeat = ImMax(0.0, std::round(clickBeat / 0.25) * 0.25);
+    clickBeat = ImMax(0.0, std::round(clickBeat * state.sub_beat_grid) / state.sub_beat_grid);
     clickPitch = ImClamp(clickPitch, 0, 127);
 
     if (outBeat) *outBeat = clickBeat;
@@ -530,8 +530,7 @@ PianoRollInteraction PianoRollNote(PianoRollState& state, uint32_t id, double* b
       double newBeat = CanvasXToBeat(targetX, state.pixelsPerBeat, state.scrollVal.x);
       int newPitch = CanvasYToPitch(targetY + (state.noteHeight / 2.0f), state.noteHeight, state.scrollVal.y);
       if (state.snap_to_grid) {
-        const auto sub_beat = 1.0 / state.sub_beat_grid;
-        newBeat = std::round(newBeat / sub_beat) * sub_beat;
+        newBeat = std::round(newBeat * state.sub_beat_grid) / state.sub_beat_grid;
       }
       newBeat = ImMax(0.0, newBeat);
 
@@ -545,11 +544,10 @@ PianoRollInteraction PianoRollNote(PianoRollState& state, uint32_t id, double* b
       }
     } else if (state.editMode == PianoRollEditMode::Resizing) {
       double newDuration = CanvasXToBeat(localMouse.x, state.pixelsPerBeat, state.scrollVal.x) - *beat;
-      const auto sub_beat = 1.0 / state.sub_beat_grid;
       if (state.snap_to_grid) {
-        newDuration = std::round(newDuration / sub_beat) * sub_beat;
+        newDuration = std::round(newDuration * state.sub_beat_grid) / state.sub_beat_grid;
       }
-      newDuration = ImMax(sub_beat, newDuration);
+      newDuration = ImMax(1.0 / state.sub_beat_grid, newDuration);
 
       if (*duration != newDuration) {
         *duration = newDuration;
