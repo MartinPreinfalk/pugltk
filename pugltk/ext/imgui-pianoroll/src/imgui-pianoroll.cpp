@@ -3,6 +3,8 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
+#include <iterator>
+#include <set>
 #include <string>
 #include <utility>
 #include <vector>
@@ -19,6 +21,11 @@ struct PianoRollVelocityNote {
   int original_velocity;
 };
 
+struct PianoRollNoteBounds {
+  uint32_t id;
+  float x1, y1, x2, y2;  // Canvas-local pixels.
+};
+
 struct PianoRollContext {
   ImVec2 CanvasPos;
   ImVec2 CanvasSize;
@@ -27,6 +34,17 @@ struct PianoRollContext {
   bool VelocityPane = false;
   std::vector<PianoRollVelocityNote> Notes;
   std::vector<std::pair<int, std::string>> Keys;
+
+  // Selection / group edit, valid for the current frame only.
+  std::vector<PianoRollNoteBounds> Bounds;
+  int SelectPitch = -1;           // Right click on overlay key: notes of this pitch join the selection.
+  bool RectCandidate = false;     // Right click this frame; becomes a rectangle selection if no note was hit.
+  ImVec2 RectCandidateWorld;
+  bool RightClickedNote = false;
+  bool LeftClickCandidate = false;
+  bool GroupMoveActive = false;
+  double GroupDeltaBeat = 0.0;
+  int GroupDeltaPitch = 0;
 };
 
 static PianoRollContext g_PRCtx;
@@ -196,6 +214,71 @@ static void HandlePianoKeyboardInput(PianoRollState& state, PianoRollKeyboardEve
     }
     state.keyboardActivePitch = -1;
   }
+
+  if (overKeyboard && ImGui::IsMouseClicked(ImGuiMouseButton_Right)) {
+    if (!io.KeyShift) {
+      state.selected_notes.clear();
+    }
+    g_PRCtx.SelectPitch = ImClamp(CanvasYToPitch(localMouse.y, state.noteHeight, state.scrollVal.y), 0, 127);
+  }
+}
+
+// Prepares rectangle selection and selection clearing; the decisions are finished in EndPianoRoll, once it is
+// known whether a note was hit.
+static void HandleSelectionInput(PianoRollState& state) {
+  ImGuiIO& io = ImGui::GetIO();
+  ImVec2 const localMouse(io.MousePos.x - g_PRCtx.CanvasPos.x, io.MousePos.y - g_PRCtx.CanvasPos.y);
+  bool const overNotes = g_PRCtx.IsCanvasHovered && localMouse.x >= PIANO_KEY_OVERLAY_WIDTH && localMouse.y >= 0.0f &&
+                         localMouse.y < g_PRCtx.CanvasSize.y;
+
+  if (overNotes && ImGui::IsMouseClicked(ImGuiMouseButton_Right) && !state.rect_selecting) {
+    g_PRCtx.RectCandidate = true;
+    g_PRCtx.RectCandidateWorld = ImVec2(localMouse.x + state.scrollVal.x, localMouse.y + state.scrollVal.y);
+  }
+  if (overNotes && ImGui::IsMouseClicked(ImGuiMouseButton_Left) && state.editMode == PianoRollEditMode::None &&
+      state.keyboardActivePitch == -1) {
+    g_PRCtx.LeftClickCandidate = true;
+  }
+  if (g_PRCtx.IsCanvasHovered && ImGui::IsKeyPressed(ImGuiKey_Escape, false)) {
+    state.selected_notes.clear();
+  }
+}
+
+// Computes the group offset from the current mouse position. The leftmost selected note defines the beat snap.
+static void UpdateGroupMove(PianoRollState& state) {
+  g_PRCtx.GroupMoveActive = false;
+  if (!state.group_dragging || state.editMode != PianoRollEditMode::Moving ||
+      !ImGui::IsMouseDown(ImGuiMouseButton_Left)) {
+    return;
+  }
+  double min_beat = 0.0;
+  int min_pitch = 127, max_pitch = 0;
+  bool any = false;
+  for (auto const id : state.selected_notes) {
+    auto const it = state.selection_origins.find(id);
+    if (it == state.selection_origins.end()) continue;
+    min_beat = any ? std::min(min_beat, it->second.beat) : it->second.beat;
+    min_pitch = std::min(min_pitch, it->second.pitch);
+    max_pitch = std::max(max_pitch, it->second.pitch);
+    any = true;
+  }
+  if (!any) return;
+
+  ImGuiIO& io = ImGui::GetIO();
+  float const target_x = io.MousePos.x - g_PRCtx.CanvasPos.x - state.mouseClickOffset.x;
+  float const target_y = io.MousePos.y - g_PRCtx.CanvasPos.y - state.mouseClickOffset.y;
+  double const raw_beat = CanvasXToBeat(target_x, state.pixelsPerBeat, state.scrollVal.x);
+  int const raw_pitch = CanvasYToPitch(target_y + state.noteHeight / 2.0f, state.noteHeight, state.scrollVal.y);
+
+  double new_leftmost = min_beat + (raw_beat - state.dragStartBeat);
+  if (state.snap_to_grid) {
+    new_leftmost = std::round(new_leftmost * state.sub_beat_grid) / state.sub_beat_grid;
+  }
+  new_leftmost = std::max(0.0, new_leftmost);
+
+  g_PRCtx.GroupDeltaBeat = new_leftmost - min_beat;
+  g_PRCtx.GroupDeltaPitch = std::clamp(raw_pitch - state.dragStartPitch, -min_pitch, 127 - max_pitch);
+  g_PRCtx.GroupMoveActive = true;
 }
 
 namespace ImGui {
@@ -217,6 +300,11 @@ bool FlushPianoRollVelocity(PianoRollState& state, bool force, std::chrono::stea
   IM_ASSERT(state.velocity_commit && "Piano roll velocity edits require a commit callback");
   if (!state.velocity_commit) return false;
   state.velocity_commit(change.note_id, change.velocity);
+  int const delta = change.velocity - change.original_velocity;
+  for (auto const& [id, original] : change.group) {
+    int const velocity = std::clamp(original + delta, 0, 127);
+    if (velocity != original) state.velocity_commit(id, velocity);
+  }
   return true;
 }
 
@@ -232,14 +320,31 @@ void QueuePianoRollVelocity(PianoRollState& state, uint32_t note_id, int origina
   if (state.pending_velocity && state.pending_velocity->note_id != note_id) {
     FlushPianoRollVelocity(state, true, now);
   }
-  if (state.pending_velocity) original_velocity = state.pending_velocity->original_velocity;
-  state.pending_velocity = PianoRollState::PendingVelocity{note_id, original_velocity,
-                                                             std::clamp(velocity, 0, 127), now};
+  std::vector<std::pair<uint32_t, int>> group;
+  if (state.pending_velocity) {
+    original_velocity = state.pending_velocity->original_velocity;
+    group = std::move(state.pending_velocity->group);
+  } else if (state.selected_notes.count(note_id)) {
+    // The edited note belongs to the selection: all other members receive the same offset.
+    for (auto const id : state.selected_notes) {
+      auto const origin = state.selection_origins.find(id);
+      if (id != note_id && origin != state.selection_origins.end()) {
+        group.emplace_back(id, origin->second.velocity);
+      }
+    }
+  }
+  state.pending_velocity =
+      PianoRollState::PendingVelocity{note_id, original_velocity, std::clamp(velocity, 0, 127), now, std::move(group)};
 }
 
 int PianoRollDisplayedVelocity(PianoRollState const& state, uint32_t note_id, int velocity) {
-  return state.pending_velocity && state.pending_velocity->note_id == note_id ? state.pending_velocity->velocity
-                                                                             : velocity;
+  if (!state.pending_velocity) return velocity;
+  auto const& pending = *state.pending_velocity;
+  if (pending.note_id == note_id) return pending.velocity;
+  for (auto const& [id, original] : pending.group) {
+    if (id == note_id) return std::clamp(original + (pending.velocity - pending.original_velocity), 0, 127);
+  }
+  return velocity;
 }
 
 void PianoRollVelocityKey(int key_id, const char* label) {
@@ -325,6 +430,12 @@ bool BeginPianoRoll(const char* str_id, PianoRollState& state, const ImVec2& siz
   state.velocity_rendered = true;
   g_PRCtx.Notes.clear();
   g_PRCtx.Keys.clear();
+  g_PRCtx.Bounds.clear();
+  g_PRCtx.SelectPitch = -1;
+  g_PRCtx.RectCandidate = false;
+  g_PRCtx.RightClickedNote = false;
+  g_PRCtx.LeftClickCandidate = false;
+  g_PRCtx.GroupMoveActive = false;
   g_PRCtx.VelocityPane = false;
   PushID(str_id);
 
@@ -404,6 +515,8 @@ bool BeginPianoRoll(const char* str_id, PianoRollState& state, const ImVec2& siz
   }
   HandleCanvasInput(state, g_PRCtx.CanvasSize);
   HandlePianoKeyboardInput(state, keyboardEventCallback);
+  HandleSelectionInput(state);
+  UpdateGroupMove(state);
   DrawGrid(g_PRCtx.DrawList, g_PRCtx.CanvasPos, g_PRCtx.CanvasSize, state);
 
   g_PRCtx.DrawList->PushClipRect(
@@ -451,6 +564,35 @@ PianoRollInteraction PianoRollNote(PianoRollState& state, uint32_t id, double* b
   int const original_velocity = *velocity;
   int preview_velocity = PianoRollDisplayedVelocity(state, id, *velocity);
   if (state.velocity_commit) velocity = &preview_velocity;
+
+  if (g_PRCtx.SelectPitch == *pitch) {
+    state.selected_notes.insert(id);
+  }
+  if (state.selected_notes.count(id)) {
+    // Remember pre-edit values so group moves and group velocity offsets stay relative to the drag start.
+    auto const [origin, inserted] =
+        state.selection_origins.try_emplace(id, PianoRollState::SelectedNoteOrigin{*beat, *pitch, original_velocity});
+    if (!inserted) {
+      if (!state.group_dragging) {
+        origin->second.beat = *beat;
+        origin->second.pitch = *pitch;
+      }
+      if (!state.pending_velocity) origin->second.velocity = original_velocity;
+    }
+    if (g_PRCtx.GroupMoveActive) {
+      double const new_beat = origin->second.beat + g_PRCtx.GroupDeltaBeat;
+      int const new_pitch = origin->second.pitch + g_PRCtx.GroupDeltaPitch;
+      if (std::abs(*beat - new_beat) > 1e-9) {
+        *beat = new_beat;
+        resultFlags |= PianoRollInteraction_PositionChanged;
+      }
+      if (*pitch != new_pitch) {
+        *pitch = new_pitch;
+        resultFlags |= PianoRollInteraction_PitchChanged;
+      }
+    }
+  }
+
   if (g_PRCtx.VelocityPane) {
     g_PRCtx.Notes.push_back({id, velocity_key < 0 ? *pitch : velocity_key, *beat, original_velocity});
   }
@@ -473,6 +615,8 @@ PianoRollInteraction PianoRollNote(PianoRollState& state, uint32_t id, double* b
     y1 = PitchToCanvasY(*pitch, state.noteHeight, state.scrollVal.y);
     y2 = y1 + state.noteHeight;
   }
+
+  g_PRCtx.Bounds.push_back({id, x1, y1, x2, y2});
 
   if (x2 < 0 || x1 > g_PRCtx.CanvasSize.x || y2 < 0 || y1 > g_PRCtx.CanvasSize.y) {
     return resultFlags;
@@ -500,6 +644,11 @@ PianoRollInteraction PianoRollNote(PianoRollState& state, uint32_t id, double* b
     state.dragStartVelocity = *velocity;
     state.dragStartDuration = *duration;
 
+    if (!state.selected_notes.count(id)) {
+      // Clicking a note outside the selection drops the selection and edits only this note.
+      state.selected_notes.clear();
+    }
+
     if (io.KeyCtrl) {
       state.editMode = PianoRollEditMode::Velocity;
       state.mouseClick = ImVec2(localMouse.x, localMouse.y);
@@ -508,6 +657,7 @@ PianoRollInteraction PianoRollNote(PianoRollState& state, uint32_t id, double* b
         state.editMode = PianoRollEditMode::Resizing;
       } else {
         state.editMode = PianoRollEditMode::Moving;
+        state.group_dragging = state.selected_notes.size() > 1;
         if (isPercussive) {
           state.mouseClickOffset = ImVec2(localMouse.x - centerX, localMouse.y - y1);
         } else {
@@ -520,10 +670,11 @@ PianoRollInteraction PianoRollNote(PianoRollState& state, uint32_t id, double* b
 
   if (isHovered && IsMouseClicked(ImGuiMouseButton_Right)) {
     resultFlags |= PianoRollInteraction_RightClicked;
+    g_PRCtx.RightClickedNote = true;
   }
 
   if (isActive && IsMouseDown(ImGuiMouseButton_Left)) {
-    if (state.editMode == PianoRollEditMode::Moving) {
+    if (state.editMode == PianoRollEditMode::Moving && !state.group_dragging) {
       float targetX = localMouse.x - state.mouseClickOffset.x;
       float targetY = localMouse.y - state.mouseClickOffset.y;
 
@@ -595,12 +746,24 @@ PianoRollInteraction PianoRollNote(PianoRollState& state, uint32_t id, double* b
                         ImVec2(g_PRCtx.CanvasPos.x + centerX - diamondRadius, g_PRCtx.CanvasPos.y + centerY)};
     g_PRCtx.DrawList->AddConvexPolyFilled(points, 4, finalColor);
     g_PRCtx.DrawList->AddPolyline(points, 4, IM_COL32(0, 0, 0, 200), ImDrawFlags_Closed, 1.5f);
+    if (state.selected_notes.count(id)) {
+      float const r = diamondRadius + 3.0f;
+      ImVec2 const frame[4] = {ImVec2(g_PRCtx.CanvasPos.x + centerX, g_PRCtx.CanvasPos.y + centerY - r),
+                               ImVec2(g_PRCtx.CanvasPos.x + centerX + r, g_PRCtx.CanvasPos.y + centerY),
+                               ImVec2(g_PRCtx.CanvasPos.x + centerX, g_PRCtx.CanvasPos.y + centerY + r),
+                               ImVec2(g_PRCtx.CanvasPos.x + centerX - r, g_PRCtx.CanvasPos.y + centerY)};
+      g_PRCtx.DrawList->AddPolyline(frame, 4, IM_COL32(255, 255, 255, 255), ImDrawFlags_Closed, 2.0f);
+    }
   } else {
     ImVec2 p_min = ImVec2(g_PRCtx.CanvasPos.x + x1, g_PRCtx.CanvasPos.y + y1);
     ImVec2 p_max = ImVec2(g_PRCtx.CanvasPos.x + x2, g_PRCtx.CanvasPos.y + y2);
 
     g_PRCtx.DrawList->AddRectFilled(p_min, p_max, finalColor, 3.0f);
     g_PRCtx.DrawList->AddRect(p_min, p_max, IM_COL32(0, 0, 0, 150), 3.0f, 0, 1.0f);
+    if (state.selected_notes.count(id)) {
+      g_PRCtx.DrawList->AddRect(ImVec2(p_min.x - 2.0f, p_min.y - 2.0f), ImVec2(p_max.x + 2.0f, p_max.y + 2.0f),
+                                IM_COL32(255, 255, 255, 255), 4.0f, 0, 2.0f);
+    }
   }
 
   if (isHovered || isActive) {
@@ -684,7 +847,11 @@ static void RenderPianoRollVelocities(PianoRollState& state) {
           color.w = 1.0f;
           auto const label = "##velocity" + std::to_string(note.id);
           ImPlot::SetNextFillStyle(color);
-          ImPlot::SetNextLineStyle(color);
+          if (state.selected_notes.count(note.id)) {
+            ImPlot::SetNextLineStyle(ImVec4(1.0f, 1.0f, 1.0f, 1.0f), 2.0f);
+          } else {
+            ImPlot::SetNextLineStyle(color);
+          }
           ImPlot::PlotBars(label.c_str(), &x, &y, 1, 7.0 / state.pixelsPerBeat);
           bool hovered = false, held = false;
           if (ImPlot::DragPoint(static_cast<int>(note.id), &x, &y, color, 4.0f, ImPlotDragToolFlags_Delayed,
@@ -710,9 +877,76 @@ static void RenderPianoRollVelocities(PianoRollState& state) {
 }
 
 void EndPianoRoll(PianoRollState& state) {
+  ImGuiIO& io = GetIO();
+
+  // Rectangle selection starts on a right click that did not hit a note.
+  if (g_PRCtx.RectCandidate && !g_PRCtx.RightClickedNote) {
+    state.rect_selecting = true;
+    state.rect_start_world = g_PRCtx.RectCandidateWorld;
+    state.rect_base_selection = io.KeyShift ? state.selected_notes : std::set<uint32_t>{};
+    if (!io.KeyShift) state.selected_notes.clear();
+  }
+  if (g_PRCtx.LeftClickCandidate && state.editMode == PianoRollEditMode::None) {
+    state.left_click_on_empty = true;
+  }
+
+  if (state.rect_selecting) {
+    ImVec2 const start(state.rect_start_world.x - state.scrollVal.x, state.rect_start_world.y - state.scrollVal.y);
+    ImVec2 const current(io.MousePos.x - g_PRCtx.CanvasPos.x, io.MousePos.y - g_PRCtx.CanvasPos.y);
+    ImVec2 const rect_min(std::max(std::min(start.x, current.x), PIANO_KEY_OVERLAY_WIDTH), std::min(start.y, current.y));
+    ImVec2 const rect_max(std::max(start.x, current.x), std::max(start.y, current.y));
+    state.selected_notes = state.rect_base_selection;
+    for (auto const& b : g_PRCtx.Bounds) {
+      if (b.x2 >= rect_min.x && b.x1 <= rect_max.x && b.y2 >= rect_min.y && b.y1 <= rect_max.y) {
+        state.selected_notes.insert(b.id);
+      }
+    }
+    if (IsMouseDown(ImGuiMouseButton_Right)) {
+      ImVec2 const p_min(g_PRCtx.CanvasPos.x + rect_min.x, g_PRCtx.CanvasPos.y + rect_min.y);
+      ImVec2 const p_max(g_PRCtx.CanvasPos.x + rect_max.x, g_PRCtx.CanvasPos.y + rect_max.y);
+      g_PRCtx.DrawList->AddRectFilled(p_min, p_max, IM_COL32(255, 255, 255, 25));
+      g_PRCtx.DrawList->AddRect(p_min, p_max, IM_COL32(255, 255, 255, 180));
+    } else {
+      state.rect_selecting = false;
+    }
+  }
+
+  // Drop selected notes that are no longer submitted (e.g. removed by the client).
+  if (!state.selected_notes.empty() || !state.selection_origins.empty()) {
+    std::vector<uint32_t> ids;
+    ids.reserve(g_PRCtx.Bounds.size());
+    for (auto const& b : g_PRCtx.Bounds) ids.push_back(b.id);
+    std::sort(ids.begin(), ids.end());
+    for (auto it = state.selected_notes.begin(); it != state.selected_notes.end();) {
+      it = std::binary_search(ids.begin(), ids.end(), *it) ? std::next(it) : state.selected_notes.erase(it);
+    }
+    for (auto it = state.selection_origins.begin(); it != state.selection_origins.end();) {
+      it = state.selected_notes.count(it->first) ? std::next(it) : state.selection_origins.erase(it);
+    }
+  }
+
+  if (!state.selected_notes.empty() && state.delete_note && g_PRCtx.IsCanvasHovered && !io.WantTextInput &&
+      IsKeyPressed(ImGuiKey_Delete, false)) {
+    if (state.pending_velocity && state.selected_notes.count(state.pending_velocity->note_id)) {
+      CancelPianoRollVelocity(state);
+    } else {
+      FlushPianoRollVelocity(state, true);
+    }
+    std::vector<uint32_t> const doomed(state.selected_notes.begin(), state.selected_notes.end());
+    state.selected_notes.clear();
+    state.selection_origins.clear();
+    for (auto const id : doomed) state.delete_note(id);
+  }
+
   if (IsMouseReleased(ImGuiMouseButton_Left)) {
+    if (state.left_click_on_empty && !state.rect_selecting) {
+      ImVec2 const moved(io.MousePos.x - io.MouseClickedPos[0].x, io.MousePos.y - io.MouseClickedPos[0].y);
+      if (moved.x * moved.x + moved.y * moved.y < 16.0f) state.selected_notes.clear();
+    }
+    state.left_click_on_empty = false;
     state.editMode = PianoRollEditMode::None;
     state.activeNoteId = -1;
+    state.group_dragging = false;
   }
 
   g_PRCtx.DrawList->PopClipRect();

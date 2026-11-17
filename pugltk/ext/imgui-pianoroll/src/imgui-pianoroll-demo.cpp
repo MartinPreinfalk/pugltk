@@ -43,6 +43,14 @@ void ImGui::ShowPianoRollDemoApp() {
   drumState.velocity_commit = [](uint32_t id, int velocity) {
     for (auto& note : drumNotes) if (note.id == id) note.velocity = velocity;
   };
+  synthState.delete_note = [](uint32_t id) {
+    synthNotes.erase(std::remove_if(synthNotes.begin(), synthNotes.end(), [&](auto const& n) { return n.id == id; }),
+                     synthNotes.end());
+  };
+  drumState.delete_note = [](uint32_t id) {
+    drumNotes.erase(std::remove_if(drumNotes.begin(), drumNotes.end(), [&](auto const& n) { return n.id == id; }),
+                    drumNotes.end());
+  };
   ImGui::UpdatePianoRollVelocity(synthState);
   ImGui::UpdatePianoRollVelocity(drumState);
 

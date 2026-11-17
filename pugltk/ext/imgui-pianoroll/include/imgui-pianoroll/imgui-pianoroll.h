@@ -4,6 +4,10 @@
 #include <chrono>
 #include <functional>
 #include <optional>
+#include <set>
+#include <unordered_map>
+#include <utility>
+#include <vector>
 
 #include "imgui.h"
 
@@ -29,6 +33,8 @@ enum class PianoRollEditMode { None, Moving, Resizing, Velocity };
 enum class PianoRollKeyboardEventType { NoteOn, NoteOff };
 using PianoRollKeyboardEventCallback = std::function<void(PianoRollKeyboardEventType, int pitch)>;
 using PianoRollVelocityCommitCallback = std::function<void(uint32_t note_id, int velocity)>;
+// Invoked once per selected note when DEL is pressed; the client removes the note.
+using PianoRollDeleteCallback = std::function<void(uint32_t note_id)>;
 
 // Kapselt den vollständigen UI-Zustand eines Piano Rolls
 struct PianoRollState {
@@ -43,12 +49,34 @@ struct PianoRollState {
   std::optional<int> velocity_filter_key;
   // Invoked once per debounced edit; the client applies or sends the change.
   PianoRollVelocityCommitCallback velocity_commit;
+  // Invoked for every selected note when DEL is pressed over the canvas. Without it DEL is ignored by the widget.
+  PianoRollDeleteCallback delete_note;
+
+  // --- Note selection (group edit) ---
+  // Selected note ids. Filled by right-click rectangle selection or right-click on the overlay keyboard
+  // (all notes of that pitch). Shift adds to the selection. Escape or a left click on empty space clears it.
+  // Dragging a selected note moves the whole group; velocity edits of one member offset all members.
+  // Ids of notes not submitted via PianoRollNote in a frame are dropped from the selection.
+  std::set<uint32_t> selected_notes;
+  struct SelectedNoteOrigin {
+    double beat;
+    int pitch;
+    int velocity;
+  };
+  std::unordered_map<uint32_t, SelectedNoteOrigin> selection_origins;  // Pre-edit values of the selected notes.
+  bool group_dragging = false;
+  bool rect_selecting = false;
+  ImVec2 rect_start_world = ImVec2(0.0f, 0.0f);  // Scroll-independent start of the selection rectangle.
+  std::set<uint32_t> rect_base_selection;
+  bool left_click_on_empty = false;
 
   struct PendingVelocity {
     uint32_t note_id;
     int original_velocity;
     int velocity;
     std::chrono::steady_clock::time_point last_update;
+    // Other selected notes (id, original velocity) that receive the same velocity offset.
+    std::vector<std::pair<uint32_t, int>> group;
   };
   std::optional<PendingVelocity> pending_velocity;
   bool velocity_dragging = false;
